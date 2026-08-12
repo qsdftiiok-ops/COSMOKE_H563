@@ -1,0 +1,219 @@
+#include "app.h"
+#include "ads131m08.h"
+#include "app_config.h"
+#include "dac8564.h"
+#include "main.h"
+#include "measurement.h"
+#include "spi.h"
+#include "telemetry.h"
+#include <string.h>
+
+static MeasurementFilterState s_filter;
+static TelemetrySnapshot s_snapshot;
+static bool s_adc_online;
+static bool s_dac_online;
+static bool s_have_measurement;
+static uint32_t s_last_adc_retry_ms;
+static uint32_t s_last_dac_update_ms;
+static uint32_t s_last_telemetry_ms;
+
+static bool TimeElapsed(uint32_t now, uint32_t then, uint32_t period)
+{
+  return (uint32_t)(now - then) >= period;
+}
+
+static void RefreshFlags(void)
+{
+  ADS131M08_Diagnostics diagnostics;
+  uint16_t flags = 0u;
+
+  ADS131M08_GetDiagnostics(&diagnostics);
+  s_snapshot.dropped_frames = diagnostics.dropped_frames;
+  s_snapshot.adc_crc_errors = diagnostics.crc_errors;
+  s_snapshot.adc_spi_errors = diagnostics.spi_errors;
+  s_snapshot.dac_errors = DAC8564_GetErrorCount();
+
+  if (s_have_measurement)
+  {
+    flags |= TELEMETRY_FLAG_VALID;
+  }
+  if (HAL_GPIO_ReadPin(SENSOR_FAULT_N_GPIO_Port, SENSOR_FAULT_N_Pin) == GPIO_PIN_RESET)
+  {
+    flags |= TELEMETRY_FLAG_AFE_FAULT;
+  }
+  if (diagnostics.crc_errors != 0u)
+  {
+    flags |= TELEMETRY_FLAG_ADC_CRC_ERROR;
+  }
+  if (diagnostics.dropped_frames != 0u)
+  {
+    flags |= TELEMETRY_FLAG_ADC_FRAME_DROP;
+  }
+  if (diagnostics.spi_errors != 0u)
+  {
+    flags |= TELEMETRY_FLAG_ADC_SPI_ERROR;
+  }
+  if (!s_adc_online)
+  {
+    flags |= TELEMETRY_FLAG_ADC_OFFLINE;
+  }
+  if (!s_dac_online || s_snapshot.dac_errors != 0u)
+  {
+    flags |= TELEMETRY_FLAG_DAC_ERROR;
+  }
+  if (s_snapshot.measurement.clipped)
+  {
+    flags |= TELEMETRY_FLAG_OUTPUT_CLIPPED;
+  }
+  s_snapshot.flags = flags;
+}
+
+static void SetSafeDacCodes(void)
+{
+  for (uint32_t channel = 0u; channel < MEAS_CHANNEL_COUNT; ++channel)
+  {
+    s_snapshot.measurement.dac_code[channel] = APP_DAC_SAFE_CODE;
+  }
+}
+
+static bool InitializeAdc(void)
+{
+  bool ok;
+
+  HAL_NVIC_DisableIRQ(EXTI3_IRQn);
+  ADS131M08_Stop();
+  ok = ADS131M08_Init(&hspi1);
+  __HAL_GPIO_EXTI_CLEAR_IT(ADC_DRDY_N_Pin);
+  if (ok)
+  {
+    ADS131M08_Start();
+  }
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+  return ok;
+}
+
+void App_Init(void)
+{
+  uint32_t now = HAL_GetTick();
+
+  memset(&s_snapshot, 0, sizeof(s_snapshot));
+  Measurement_Init(&s_filter);
+  SetSafeDacCodes();
+
+  HAL_NVIC_DisableIRQ(EXTI3_IRQn);
+  s_dac_online = DAC8564_Init(&hspi1);
+  s_adc_online = InitializeAdc();
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  s_have_measurement = false;
+  s_last_adc_retry_ms = now;
+  s_last_dac_update_ms = now;
+  s_last_telemetry_ms = now;
+  Telemetry_Init();
+
+  if (s_adc_online && s_dac_online)
+  {
+    BSP_LED_On(LED_GREEN);
+    BSP_LED_Off(LED_RED);
+  }
+  else
+  {
+    BSP_LED_Off(LED_GREEN);
+    BSP_LED_On(LED_RED);
+  }
+}
+
+void App_Task(void)
+{
+  ADS131M08_Frame frame;
+  uint32_t now = HAL_GetTick();
+
+  if (!s_adc_online && TimeElapsed(now, s_last_adc_retry_ms, APP_ADC_RETRY_PERIOD_MS))
+  {
+    s_last_adc_retry_ms = now;
+    s_adc_online = InitializeAdc();
+    if (s_adc_online)
+    {
+      Measurement_Init(&s_filter);
+      s_have_measurement = false;
+      BSP_LED_On(LED_GREEN);
+    }
+  }
+
+  while (s_adc_online && ADS131M08_ReadFrame(&frame))
+  {
+    MeasurementRawFrame raw_frame;
+    MeasurementResult result;
+
+    raw_frame.sequence = frame.sequence;
+    raw_frame.timestamp_ms = frame.timestamp_ms;
+    raw_frame.adc_status = frame.response_status;
+    raw_frame.crc_ok = frame.crc_ok;
+    for (uint32_t channel = 0u; channel < MEAS_CHANNEL_COUNT; ++channel)
+    {
+      raw_frame.raw[channel] = frame.channel[channel];
+    }
+
+    if (Measurement_ProcessFrame(&s_filter, &raw_frame, &result))
+    {
+      s_snapshot.measurement = result;
+      s_have_measurement = true;
+    }
+  }
+
+  RefreshFlags();
+
+  if (TimeElapsed(now, s_last_dac_update_ms, APP_DAC_UPDATE_PERIOD_MS))
+  {
+    s_last_dac_update_ms = now;
+    if ((s_snapshot.flags & (TELEMETRY_FLAG_AFE_FAULT |
+                             TELEMETRY_FLAG_ADC_OFFLINE)) != 0u ||
+        !s_have_measurement)
+    {
+      SetSafeDacCodes();
+    }
+
+    if (ADS131M08_TryLockBus())
+    {
+      s_dac_online = DAC8564_WriteAll(s_snapshot.measurement.dac_code);
+      ADS131M08_UnlockBus();
+    }
+  }
+
+  if (TimeElapsed(now, s_last_telemetry_ms, APP_TELEMETRY_PERIOD_MS))
+  {
+    s_last_telemetry_ms = now;
+    RefreshFlags();
+    (void)Telemetry_Send(&s_snapshot);
+    BSP_LED_Toggle(LED_YELLOW);
+  }
+
+  if ((s_snapshot.flags & (TELEMETRY_FLAG_AFE_FAULT |
+                           TELEMETRY_FLAG_ADC_OFFLINE |
+                           TELEMETRY_FLAG_DAC_ERROR)) != 0u)
+  {
+    BSP_LED_On(LED_RED);
+  }
+  else
+  {
+    BSP_LED_Off(LED_RED);
+  }
+}
+
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == ADC_DRDY_N_Pin)
+  {
+    ADS131M08_OnDrdyInterrupt();
+  }
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *spi)
+{
+  ADS131M08_OnSpiCompleteInterrupt(spi);
+}
+
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *spi)
+{
+  ADS131M08_OnSpiErrorInterrupt(spi);
+}

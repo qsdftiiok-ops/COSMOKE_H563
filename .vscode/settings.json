@@ -1,0 +1,14 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/firmware-debug/compile_commands.json",
+  "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.intelliSenseMode": "gcc-arm",
+  "cmake.configureOnOpen": false,
+  "files.associations": {
+    "*.h": "c",
+    "*.c": "c",
+    "*.s": "association",
+    "*.S": "association"
+  },
+  "editor.formatOnSave": true
+}

@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>COSMOKE H563 펌웨어 · LAN 통신 가이드</title>
+  <style>
+    :root {
+      --bg: #07101d;
+      --bg-soft: #0b1727;
+      --panel: rgba(15, 31, 50, .88);
+      --panel-solid: #0f1f32;
+      --panel-2: #132a42;
+      --text: #edf6ff;
+      --muted: #9db2c8;
+      --line: #29445f;
+      --cyan: #4dd7ef;
+      --cyan-soft: rgba(77, 215, 239, .13);
+      --green: #5ce0a2;
+      --green-soft: rgba(92, 224, 162, .12);
+      --amber: #ffc767;
+      --amber-soft: rgba(255, 199, 103, .12);
+      --red: #ff7b8e;
+      --red-soft: rgba(255, 123, 142, .12);
+      --violet: #a99cff;
+      --code: #050c15;
+      --shadow: 0 22px 65px rgba(0, 0, 0, .32);
+      --radius: 18px;
+    }
+    html[data-theme="light"] {
+      --bg: #eef4f8;
+      --bg-soft: #e6eef4;
+      --panel: rgba(255, 255, 255, .92);
+      --panel-solid: #ffffff;
+      --panel-2: #edf5fb;
+      --text: #12283c;
+      --muted: #587087;
+      --line: #c8d8e5;
+      --cyan: #087f9b;
+      --cyan-soft: rgba(8, 127, 155, .09);
+      --green: #158558;
+      --green-soft: rgba(21, 133, 88, .09);
+      --amber: #9b6500;
+      --amber-soft: rgba(155, 101, 0, .09);
+      --red: #bd334b;
+      --red-soft: rgba(189, 51, 75, .09);
+      --violet: #6756cc;
+      --code: #102234;
+      --shadow: 0 18px 45px rgba(41, 68, 95, .13);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 22px; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 82% -8%, rgba(29, 111, 155, .25), transparent 34rem),
+        radial-gradient(circle at 15% 30%, rgba(62, 87, 161, .13), transparent 32rem),
+        var(--bg);
+      font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", Inter, system-ui, sans-serif;
+      line-height: 1.68;
+      letter-spacing: -.01em;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input { font: inherit; }
+    .layout { display: grid; grid-template-columns: 286px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 89%, transparent);
+      backdrop-filter: blur(18px);
+      z-index: 10;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+      border: 1px solid color-mix(in srgb, var(--cyan) 55%, var(--line));
+      border-radius: 13px;
+      color: var(--cyan);
+      background: var(--cyan-soft);
+      font-weight: 900;
+      box-shadow: inset 0 0 20px rgba(77, 215, 239, .08);
+    }
+    .brand { font-size: 19px; font-weight: 850; letter-spacing: .01em; }
+    .brand-sub { color: var(--muted); font-size: 12px; margin: 3px 0 24px; }
+    .nav-title {
+      margin: 21px 10px 7px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: 9px;
+      color: color-mix(in srgb, var(--text) 77%, var(--muted));
+      font-size: 13px;
+    }
+    .sidebar nav a:hover, .sidebar nav a.active {
+      color: var(--text);
+      background: var(--cyan-soft);
+      text-decoration: none;
+    }
+    .nav-num { width: 20px; color: var(--cyan); font-family: Consolas, monospace; font-size: 11px; }
+    .side-actions { display: flex; gap: 8px; margin-top: 26px; }
+    .icon-btn {
+      min-height: 36px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--text);
+      background: var(--panel);
+      cursor: pointer;
+    }
+    .icon-btn:hover { border-color: var(--cyan); }
+    main { width: min(1240px, 100%); padding: 42px 50px 100px; }
+    section { position: relative; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(28px, 5vw, 54px);
+      border: 1px solid color-mix(in srgb, var(--cyan) 37%, var(--line));
+      border-radius: 26px;
+      background:
+        linear-gradient(135deg, rgba(32, 91, 126, .36), transparent 52%),
+        var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      top: -90px;
+      width: 310px;
+      height: 310px;
+      border: 1px solid rgba(77, 215, 239, .15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 32px rgba(77, 215, 239, .035), 0 0 0 68px rgba(77, 215, 239, .025);
+      pointer-events: none;
+    }
+    .eyebrow { color: var(--cyan); font-size: 12px; font-weight: 850; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: 10px 0 14px; font-size: clamp(34px, 5vw, 60px); line-height: 1.12; letter-spacing: -.045em; }
+    .lead { max-width: 870px; margin: 0; color: color-mix(in srgb, var(--text) 78%, var(--muted)); font-size: clamp(16px, 2vw, 20px); }
+    .badges { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 25px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--panel-solid) 84%, transparent);
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+    .cyan { color: var(--cyan); }
+    .green { color: var(--green); }
+    .amber { color: var(--amber); }
+    .red { color: var(--red); }
+    .violet { color: var(--violet); }
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 72px 0 22px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.25;
+      letter-spacing: -.035em;
+    }
+    h2 .section-num { color: var(--cyan); font: 700 13px Consolas, monospace; }
+    h3 { margin: 28px 0 11px; font-size: 19px; letter-spacing: -.02em; }
+    p { margin: 8px 0 15px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      padding: 19px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(155deg, color-mix(in srgb, var(--panel-2) 80%, transparent), var(--panel));
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+    }
+    .card-title { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .metric { margin: 4px 0 1px; color: var(--cyan); font-size: 31px; font-weight: 900; letter-spacing: -.035em; }
+    .metric-unit { font-size: 15px; font-weight: 700; }
+    .callout {
+      margin: 18px 0;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      border-radius: 11px;
+      background: var(--cyan-soft);
+    }
+    .callout.warn { border-left-color: var(--amber); background: var(--amber-soft); }
+    .callout.danger { border-left-color: var(--red); background: var(--red-soft); }
+    .callout.success { border-left-color: var(--green); background: var(--green-soft); }
+    .callout strong { display: block; margin-bottom: 3px; }
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 2px 16px;
+      scrollbar-width: thin;
+    }
+    .flow-node {
+      position: relative;
+      flex: 1;
+      min-width: 142px;
+      padding: 17px 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      text-align: center;
+    }
+    .flow-node strong { display: block; margin-bottom: 4px; }
+    .flow-node span { color: var(--muted); font-size: 12px; }
+    .arrow { display: grid; place-items: center; min-width: 19px; color: var(--cyan); font-size: 22px; }
+    .thread {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin: 10px 0;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+    }
+    .priority { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--cyan-soft); color: var(--cyan); font: 900 19px Consolas, monospace; }
+    .thread-meta { color: var(--muted); font-size: 12px; }
+    .stack { color: var(--violet); font: 700 12px Consolas, monospace; white-space: nowrap; }
+    .packet-rail {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 2fr 2fr 4fr 4fr 2fr 2fr 16fr 16fr 8fr 2fr 2fr;
+      min-width: 920px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+    }
+    .packet-wrap { overflow-x: auto; padding-bottom: 10px; }
+    .packet-seg {
+      min-height: 82px;
+      padding: 9px 5px;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      text-align: center;
+      font-size: 10px;
+    }
+    .packet-seg:nth-child(4n+1) { background: var(--cyan-soft); }
+    .packet-seg:nth-child(4n+2) { background: var(--green-soft); }
+    .packet-seg:nth-child(4n+3) { background: var(--amber-soft); }
+    .packet-seg b { display: block; margin-top: 8px; font-size: 11px; }
+    .packet-seg small { display: block; color: var(--muted); white-space: nowrap; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; min-width: 690px; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { color: color-mix(in srgb, var(--text) 88%, var(--cyan)); background: var(--panel-2); font-size: 12px; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: var(--cyan-soft); }
+    .offset { color: var(--cyan); font: 700 12px Consolas, monospace; white-space: nowrap; }
+    code, pre { font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace; }
+    code { padding: .13em .37em; border-radius: 5px; color: color-mix(in srgb, var(--cyan) 82%, var(--text)); background: var(--cyan-soft); }
+    pre {
+      position: relative;
+      margin: 11px 0 18px;
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: #d9eff8;
+      background: var(--code);
+      line-height: 1.56;
+      font-size: 12px;
+      white-space: pre;
+    }
+    .copy-btn {
+      float: right;
+      margin: 7px 7px -42px 0;
+      position: relative;
+      z-index: 2;
+      padding: 5px 9px;
+      border: 1px solid #35536b;
+      border-radius: 7px;
+      color: #bcd4e4;
+      background: #102233;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .tabs { display: flex; gap: 7px; margin-bottom: 13px; }
+    .tab {
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--muted);
+      background: var(--panel);
+      cursor: pointer;
+      font-weight: 750;
+    }
+    .tab.active { color: var(--text); border-color: var(--cyan); background: var(--cyan-soft); }
+    .tab-panel[hidden] { display: none; }
+    .flag-tool { display: grid; grid-template-columns: minmax(250px, .8fr) 1.4fr; gap: 16px; }
+    .flag-value {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+    .flag-value input {
+      width: 118px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: var(--bg);
+      font-family: Consolas, monospace;
+    }
+    .flag-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .flag-item {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      cursor: pointer;
+    }
+    .flag-item:has(input:checked) { border-color: var(--amber); background: var(--amber-soft); }
+    .flag-item input { margin-top: 4px; accent-color: var(--amber); }
+    .flag-item b { display: block; font-size: 12px; }
+    .flag-item span { display: block; color: var(--muted); font-size: 11px; }
+    .file-tree { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .file {
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .file code { display: inline-block; margin-bottom: 5px; }
+    .file p { margin: 0; color: var(--muted); font-size: 12px; }
+    .steps { counter-reset: steps; list-style: none; padding: 0; }
+    .steps li {
+      position: relative;
+      margin: 9px 0;
+      padding: 14px 15px 14px 54px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel);
+    }
+    .steps li::before {
+      counter-increment: steps;
+      content: counter(steps);
+      position: absolute;
+      left: 15px;
+      top: 14px;
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #04202a;
+      background: var(--cyan);
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; padding: 0; list-style: none; }
+    .checklist li { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+    .checklist li::before { content: "□"; margin-right: 9px; color: var(--cyan); font-weight: 900; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 11px; }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 10px; border-radius: 3px; background: currentColor; }
+    footer { margin-top: 76px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    @media (max-width: 1020px) {
+      .layout { display: block; }
+      .sidebar { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .sidebar nav { display: flex; flex-wrap: wrap; gap: 3px; }
+      .nav-title { width: 100%; }
+      .side-actions { position: absolute; right: 20px; top: 18px; margin: 0; }
+      main { padding: 30px 22px 80px; }
+      .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .grid, .grid.two, .grid.four, .file-tree, .flag-tool, .checklist { grid-template-columns: 1fr; }
+      .flag-list { grid-template-columns: 1fr; }
+      .thread { grid-template-columns: 58px 1fr; }
+      .stack { grid-column: 2; }
+      .hero { border-radius: 20px; }
+      h2 { margin-top: 58px; }
+    }
+    @media print {
+      :root { --bg: #fff; --panel: #fff; --panel-solid: #fff; --panel-2: #f2f6f8; --text: #142534; --muted: #586979; --line: #c9d3dc; --cyan: #087f9b; --code: #132432; }
+      body { background: #fff; }
+      .layout { display: block; }
+      .sidebar, .copy-btn, .tabs, .side-actions { display: none !important; }
+      main { width: 100%; padding: 0; }
+      .hero, .card { box-shadow: none; }
+      section { break-inside: avoid; }
+      h2 { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand-mark">CH</div>
+    <div class="brand">COSMOKE H563</div>
+    <div class="brand-sub">Firmware Architecture &amp; LAN Protocol</div>
+    <nav id="sideNav">
+      <div class="nav-title">Overview</div>
+      <a href="#overview"><span class="nav-num">01</span>현재 구성</a>
+      <a href="#architecture"><span class="nav-num">02</span>전체 아키텍처</a>
+      <a href="#runtime"><span class="nav-num">03</span>실행 구조</a>
+      <div class="nav-title">Data &amp; Network</div>
+      <a href="#measurement"><span class="nav-num">04</span>측정 데이터 흐름</a>
+      <a href="#network"><span class="nav-num">05</span>LAN 통신</a>
+      <a href="#packet"><span class="nav-num">06</span>통신 패킷</a>
+      <a href="#flags"><span class="nav-num">07</span>상태 플래그</a>
+      <div class="nav-title">Operations</div>
+      <a href="#recovery"><span class="nav-num">08</span>복구·안전 동작</a>
+      <a href="#configuration"><span class="nav-num">09</span>설정 변경</a>
+      <a href="#files"><span class="nav-num">10</span>파일 구성</a>
+      <a href="#test"><span class="nav-num">11</span>수신·시험</a>
+    </nav>
+    <div class="side-actions">
+      <button class="icon-btn" id="themeButton" type="button" title="테마 전환">◐ 테마</button>
+      <button class="icon-btn" type="button" onclick="window.print()" title="문서 인쇄">⎙ 인쇄</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="hero" id="overview">
+      <div class="eyebrow">STM32H563 · ThreadX · NetX Duo</div>
+      <h1>측정 기능은 그대로,<br>전송 경로는 LAN으로 확장</h1>
+      <p class="lead">
+        ADS131M08 기반 4채널 전압·전류 측정과 DAC8564 출력을 유지하면서,
+        DHCP 기반 Ethernet UDP 전송을 별도 Thread로 분리한 현재 펌웨어의 구조와 패킷 규격입니다.
+      </p>
+      <div class="badges">
+        <span class="badge green"><i class="dot"></i>ADC 4 kSPS</span>
+        <span class="badge cyan"><i class="dot"></i>UDP 10 Hz</span>
+        <span class="badge violet"><i class="dot"></i>ThreadX 4개 실행 주체</span>
+        <span class="badge amber"><i class="dot"></i>UART 미러 유지</span>
+      </div>
+    </header>
+
+    <section>
+      <h2><span class="section-num">01</span>현재 구성 한눈에 보기</h2>
+      <div class="grid four">
+        <article class="card">
+          <div class="card-title">ADC SAMPLE RATE</div>
+          <div class="metric">4,000 <span class="metric-unit">frame/s</span></div>
+          <div class="muted small">ADS131M08 · CH0~CH3 사용 · 24-bit</div>
+        </article>
+        <article class="card">
+          <div class="card-title">DAC UPDATE</div>
+          <div class="metric">100 <span class="metric-unit">Hz</span></div>
+          <div class="muted small">DAC8564 4채널 · 안전 코드 32768</div>
+        </article>
+        <article class="card">
+          <div class="card-title">TELEMETRY</div>
+          <div class="metric">10 <span class="metric-unit">Hz</span></div>
+          <div class="muted small">CSV 기본 · 64-byte Binary 선택 가능</div>
+        </article>
+        <article class="card">
+          <div class="card-title">NETWORK</div>
+          <div class="metric">UDP <span class="metric-unit">IPv4</span></div>
+          <div class="muted small">DHCP · Broadcast :5000 · Source :5001</div>
+        </article>
+      </div>
+      <div class="callout success">
+        <strong>기존 USB 사용 경험은 UART 미러로 유지됩니다.</strong>
+        PC에서는 ST-LINK USB Virtual COM Port로 보이지만 MCU 내부 전송은 USART3 UART입니다.
+        현재는 동일한 텔레메트리 프레임을 LAN 메일박스와 UART 양쪽에 전달합니다.
+      </div>
+    </section>
+
+    <section id="architecture">
+      <h2><span class="section-num">02</span>전체 아키텍처</h2>
+      <div class="flow" aria-label="펌웨어 전체 데이터 경로">
+        <div class="flow-node"><strong>센서 입력</strong><span>전류·전압 4채널</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>ADS131M08</strong><span>4 kSPS / SPI DMA</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Ring Buffer</strong><span>128 slots / ISR 분리</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Measurement</strong><span>보정 · 단위변환 · IIR</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Snapshot</strong><span>측정값 + 진단 플래그</span></div>
+      </div>
+      <div class="flow" aria-label="출력 분기">
+        <div class="flow-node"><strong>Snapshot</strong><span>공통 데이터 원본</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>DAC8564</strong><span>100 Hz 아날로그 출력</span></div>
+        <div class="arrow">+</div>
+        <div class="flow-node"><strong>Frame Builder</strong><span>CSV 또는 Binary</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>LAN Mailbox</strong><span>최신 프레임 우선</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>NetX UDP</strong><span>DHCP / Ethernet</span></div>
+        <div class="arrow">+</div>
+        <div class="flow-node"><strong>UART COM1</strong><span>ST-LINK VCP 미러</span></div>
+      </div>
+      <div class="legend">
+        <span class="cyan"><i></i>측정·데이터</span>
+        <span class="green"><i></i>정상 출력</span>
+        <span class="amber"><i></i>호환·진단 경로</span>
+      </div>
+    </section>
+
+    <section id="runtime">
+      <h2><span class="section-num">03</span>부팅과 실행 구조</h2>
+      <ol class="steps">
+        <li><strong>HAL 및 주변장치 초기화</strong><br><span class="muted">GPIO → GPDMA → I-Cache → SPI1 → Ethernet HAL → LED → USART3</span></li>
+        <li><strong>ThreadX 커널 진입</strong><br><span class="muted"><code>MX_ThreadX_Init()</code> → <code>tx_kernel_enter()</code></span></li>
+        <li><strong>정적 메모리 풀 생성</strong><br><span class="muted">Application용 TX pool 16 KB, NetX용 NX pool 48 KB</span></li>
+        <li><strong>측정 Thread 생성</strong><br><span class="muted"><code>App_Init()</code> 후 <code>App_Task()</code> 반복, 1 tick 간격으로 휴면</span></li>
+        <li><strong>NetX 객체 생성</strong><br><span class="muted">Packet pool → IP → ARP/ICMP/UDP → DHCP → LAN telemetry Thread</span></li>
+        <li><strong>DHCP 주소 획득 후 송신</strong><br><span class="muted">링크와 IPv4 주소가 모두 준비된 경우에만 UDP datagram 전송</span></li>
+      </ol>
+
+      <h3>Thread 우선순위</h3>
+      <p class="muted small">ThreadX는 숫자가 작을수록 높은 우선순위입니다.</p>
+      <div class="thread">
+        <div class="priority">2</div>
+        <div><strong>Measurement Thread</strong><div class="thread-meta">ADC ring drain · 보정/필터 · DAC · 프레임 생성</div></div>
+        <div class="stack">STACK 4096 B</div>
+      </div>
+      <div class="thread">
+        <div class="priority">4</div>
+        <div><strong>NetX IP Thread</strong><div class="thread-meta">IPv4 protocol stack · Ethernet driver deferred processing</div></div>
+        <div class="stack">STACK 2048 B</div>
+      </div>
+      <div class="thread">
+        <div class="priority">5</div>
+        <div><strong>DHCP Client Thread</strong><div class="thread-meta">주소 획득 · 갱신 · DHCP 상태 관리</div></div>
+        <div class="stack">STACK 4096 B</div>
+      </div>
+      <div class="thread">
+        <div class="priority">8</div>
+        <div><strong>LAN Telemetry Thread</strong><div class="thread-meta">메일박스 복사 · 링크/IP 확인 · UDP 송신</div></div>
+        <div class="stack">STACK 3072 B</div>
+      </div>
+      <div class="callout">
+        <strong>실시간 경로 우선</strong>
+        ADC EXTI/SPI DMA 계열 IRQ는 priority 0, Ethernet IRQ는 최종적으로 priority 5입니다.
+        네트워크 burst보다 ADC 획득 지연을 우선하도록 구성되어 있습니다.
+      </div>
+    </section>
+
+    <section id="measurement">
+      <h2><span class="section-num">04</span>측정 데이터 흐름</h2>
+      <div class="grid two">
+        <article class="card">
+          <h3>ADC 획득 경로</h3>
+          <ol class="steps">
+            <li><code>ADC_DRDY_N</code> falling edge 발생</li>
+            <li>EXTI ISR에서 30바이트 SPI DMA 시작</li>
+            <li>DMA 완료 ISR에서 raw frame을 ring에 저장</li>
+            <li>Measurement Thread가 ring을 비우며 CRC 확인</li>
+          </ol>
+          <p class="muted small">Ring은 128 slot이며 full/empty 구분 때문에 실제 최대 보관량은 127 frame, 약 31.75 ms입니다.</p>
+        </article>
+        <article class="card">
+          <h3>채널 의미와 범위</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>채널</th><th>의미</th><th>Full Scale</th><th>환산 상수</th></tr></thead>
+              <tbody>
+                <tr><td>CH0</td><td>Channel 1 Current</td><td>±30 A</td><td><code>0.030530 V/A</code></td></tr>
+                <tr><td>CH1</td><td>Channel 1 Voltage</td><td>±250 V</td><td><code>0.004009 V/V</code></td></tr>
+                <tr><td>CH2</td><td>Channel 2 Current</td><td>±30 A</td><td><code>0.030530 V/A</code></td></tr>
+                <tr><td>CH3</td><td>Channel 2 Voltage</td><td>±250 V</td><td><code>0.004009 V/V</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+      <h3>변환 파이프라인</h3>
+      <div class="flow">
+        <div class="flow-node"><strong>24-bit Raw</strong><span>signed counts</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Zero 보정</strong><span>raw − zero counts</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>ADC Volt</strong><span>1.2 V reference</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Engineering</strong><span>A 또는 V</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Trim / Offset</strong><span>교정 계수 적용</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>IIR Filter</strong><span>α = 0.05</span></div>
+      </div>
+    </section>
+
+    <section id="network">
+      <h2><span class="section-num">05</span>LAN 통신 구조</h2>
+      <div class="grid three">
+        <article class="card">
+          <div class="card-title">ADDRESS</div>
+          <div class="metric">DHCP</div>
+          <p class="muted small">기본값. 필요 시 compile-time static IPv4로 전환합니다.</p>
+        </article>
+        <article class="card">
+          <div class="card-title">DESTINATION</div>
+          <div class="metric">:5000</div>
+          <p class="muted small"><code>255.255.255.255</code> limited broadcast</p>
+        </article>
+        <article class="card">
+          <div class="card-title">SOURCE</div>
+          <div class="metric">:5001</div>
+          <p class="muted small">COSMOKE telemetry UDP socket bind port</p>
+        </article>
+      </div>
+      <div class="flow">
+        <div class="flow-node"><strong>Telemetry Frame</strong><span>최대 256 bytes</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Mutex Mailbox</strong><span>최신 frame으로 교체</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Event Flag</strong><span>Network Thread 깨움</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>Link + IP Check</strong><span>둘 다 ready 필요</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>NX_PACKET</strong><span>non-blocking allocate</span></div>
+        <div class="arrow">›</div>
+        <div class="flow-node"><strong>UDP Send</strong><span>1 frame = 1 datagram</span></div>
+      </div>
+      <div class="callout">
+        <strong>측정 Thread는 네트워크를 기다리지 않습니다.</strong>
+        메일박스 mutex를 즉시 획득하지 못하면 해당 텔레메트리 프레임을 drop하고 진단 카운터를 올립니다.
+        케이블 단선, DHCP 지연, packet pool 부족이 ADC 처리 주기를 직접 막지 않습니다.
+      </div>
+      <div class="grid two">
+        <article class="card">
+          <h3>NetX 메모리 구성</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>항목</th><th>크기</th><th>용도</th></tr></thead>
+              <tbody>
+                <tr><td>NX app pool</td><td>49,152 B</td><td>NetX 애플리케이션 동적 할당 원본</td></tr>
+                <tr><td>Packet pool area</td><td>24,576 B</td><td>Ethernet/UDP packet 저장</td></tr>
+                <tr><td>Packet payload</td><td>1,536 B</td><td>Ethernet MTU와 헤더 공간</td></tr>
+                <tr><td>ARP cache</td><td>1,024 B</td><td>IPv4 ↔ MAC mapping</td></tr>
+                <tr><td>IP stack</td><td>2,048 B</td><td>NetX IP Thread</td></tr>
+                <tr><td>LAN stack</td><td>3,072 B</td><td>Telemetry worker</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+        <article class="card">
+          <h3>MAC 주소</h3>
+          <p>STM32의 96-bit UID를 FNV 방식으로 혼합해 각 장비의 로컬 관리 unicast MAC을 생성합니다.</p>
+          <pre><code>02:xx:xx:xx:xx:xx
+│
+└─ bit0 = 0  → unicast
+   bit1 = 1  → locally administered</code></pre>
+          <p class="muted small">고정 MAC을 여러 보드에서 공유하지 않으므로 동일 LAN에 복수 장비를 연결할 수 있습니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="packet">
+      <h2><span class="section-num">06</span>통신 패킷 규격</h2>
+      <div class="tabs" role="tablist">
+        <button class="tab active" type="button" data-tab="binaryPanel">Binary · 64 B</button>
+        <button class="tab" type="button" data-tab="csvPanel">CSV · 기본값</button>
+      </div>
+
+      <div class="tab-panel" id="binaryPanel">
+        <div class="callout">
+          <strong>Little-endian · 고정 길이 64 bytes</strong>
+          CRC-16/CCITT는 byte 0부터 61까지 계산하고, 결과를 byte 62~63에 little-endian으로 저장합니다.
+          초기값 <code>0xFFFF</code>, polynomial <code>0x1021</code>입니다.
+        </div>
+        <div class="packet-wrap">
+          <div class="packet-rail" aria-label="64바이트 바이너리 패킷 맵">
+            <div class="packet-seg"><small>0–1</small><b>SYNC</b><small>2 B</small></div>
+            <div class="packet-seg"><small>2</small><b>VER</b><small>1 B</small></div>
+            <div class="packet-seg"><small>3</small><b>TYPE</b><small>1 B</small></div>
+            <div class="packet-seg"><small>4–5</small><b>LEN</b><small>2 B</small></div>
+            <div class="packet-seg"><small>6–7</small><b>FLAGS</b><small>2 B</small></div>
+            <div class="packet-seg"><small>8–11</small><b>SEQ</b><small>4 B</small></div>
+            <div class="packet-seg"><small>12–15</small><b>TIME</b><small>4 B</small></div>
+            <div class="packet-seg"><small>16–17</small><b>STATUS</b><small>2 B</small></div>
+            <div class="packet-seg"><small>18–19</small><b>CRC CNT</b><small>2 B</small></div>
+            <div class="packet-seg"><small>20–35</small><b>RAW ×4</b><small>16 B</small></div>
+            <div class="packet-seg"><small>36–51</small><b>SCALED ×4</b><small>16 B</small></div>
+            <div class="packet-seg"><small>52–59</small><b>DAC ×4</b><small>8 B</small></div>
+            <div class="packet-seg"><small>60–61</small><b>DROP</b><small>2 B</small></div>
+            <div class="packet-seg"><small>62–63</small><b>CRC16</b><small>2 B</small></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Offset</th><th>크기</th><th>형식</th><th>필드</th><th>설명</th></tr></thead>
+            <tbody>
+              <tr><td class="offset">0x00–0x01</td><td>2</td><td>uint16 LE</td><td>sync</td><td><code>0xA55A</code>, wire byte는 <code>5A A5</code></td></tr>
+              <tr><td class="offset">0x02</td><td>1</td><td>uint8</td><td>version</td><td>현재 <code>1</code></td></tr>
+              <tr><td class="offset">0x03</td><td>1</td><td>uint8</td><td>type</td><td><code>1</code> = measurement</td></tr>
+              <tr><td class="offset">0x04–0x05</td><td>2</td><td>uint16 LE</td><td>length</td><td>항상 <code>64</code></td></tr>
+              <tr><td class="offset">0x06–0x07</td><td>2</td><td>uint16 LE</td><td>flags</td><td>측정·ADC·DAC·LAN 상태 bit mask</td></tr>
+              <tr><td class="offset">0x08–0x0B</td><td>4</td><td>uint32 LE</td><td>sequence</td><td>ADC frame sequence</td></tr>
+              <tr><td class="offset">0x0C–0x0F</td><td>4</td><td>uint32 LE</td><td>timestamp_ms</td><td><code>HAL_GetTick()</code> 기준 ms</td></tr>
+              <tr><td class="offset">0x10–0x11</td><td>2</td><td>uint16 LE</td><td>adc_status</td><td>ADS131M08 response status</td></tr>
+              <tr><td class="offset">0x12–0x13</td><td>2</td><td>uint16 LE</td><td>adc_crc_errors</td><td>누적값의 하위 16 bit</td></tr>
+              <tr><td class="offset">0x14–0x23</td><td>16</td><td>int32[4] LE</td><td>raw[4]</td><td>CH0~CH3 signed raw counts</td></tr>
+              <tr><td class="offset">0x24–0x33</td><td>16</td><td>int32[4] LE</td><td>scaled_milli[4]</td><td>필터 값 ×1000: mA, mV, mA, mV</td></tr>
+              <tr><td class="offset">0x34–0x3B</td><td>8</td><td>uint16[4] LE</td><td>dac_code[4]</td><td>DAC8564 출력 코드</td></tr>
+              <tr><td class="offset">0x3C–0x3D</td><td>2</td><td>uint16 LE</td><td>dropped_frames</td><td>누적값의 하위 16 bit</td></tr>
+              <tr><td class="offset">0x3E–0x3F</td><td>2</td><td>uint16 LE</td><td>packet_crc</td><td>bytes 0..61 CRC-16/CCITT</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="copy-btn" type="button" data-copy="binaryStruct">복사</button>
+        <pre id="binaryStruct"><code>Python struct: &lt;HBBHHIIHH4i4i4HHH
+C concept:
+  uint16_t sync;
+  uint8_t  version, type;
+  uint16_t length, flags;
+  uint32_t sequence, timestamp_ms;
+  uint16_t adc_status, adc_crc_errors;
+  int32_t  raw[4], scaled_milli[4];
+  uint16_t dac_code[4], dropped_frames, packet_crc;</code></pre>
+      </div>
+
+      <div class="tab-panel" id="csvPanel" hidden>
+        <div class="callout success">
+          <strong>현재 firmware 기본 형식</strong>
+          한 번의 telemetry 주기마다 CRLF로 끝나는 ASCII 한 줄을 만들고, 동일한 한 줄을 UDP datagram과 UART에 사용합니다.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>필드</th><th>표현</th><th>단위 / 의미</th></tr></thead>
+            <tbody>
+              <tr><td>1–4</td><td>seq, ms, flags, adc_status</td><td>decimal, decimal, hex, hex</td><td>frame 식별 및 상태</td></tr>
+              <tr><td>5–8</td><td>i1_mA, v1_mV, i2_mA, v2_mV</td><td>signed decimal</td><td>필터 결과 ×1000</td></tr>
+              <tr><td>9–12</td><td>raw_i1, raw_v1, raw_i2, raw_v2</td><td>signed decimal</td><td>ADC raw count</td></tr>
+              <tr><td>13–16</td><td>dac_i1, dac_v1, dac_i2, dac_v2</td><td>unsigned decimal</td><td>16-bit DAC code</td></tr>
+              <tr><td>17–20</td><td>dropped, crc_error, spi_error, dac_error</td><td>unsigned decimal</td><td>누적 진단 카운터</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="copy-btn" type="button" data-copy="csvExample">복사</button>
+        <pre id="csvExample"><code>seq,ms,flags,adc_status,i1_mA,v1_mV,i2_mA,v2_mV,raw_i1,raw_v1,raw_i2,raw_v2,dac_i1,dac_v1,dac_i2,dac_v2,dropped,crc_error,spi_error,dac_error
+1024,52810,0x0001,0x0500,1250,230120,980,229870,266510,772451,208906,771614,33860,56900,33620,56870,0,0,0,0</code></pre>
+      </div>
+    </section>
+
+    <section id="flags">
+      <h2><span class="section-num">07</span>상태 플래그</h2>
+      <div class="flag-tool">
+        <article class="card">
+          <h3>플래그 계산기</h3>
+          <p class="muted small">체크박스를 선택하거나 16진수 값을 직접 입력하면 상태를 해석합니다.</p>
+          <div class="flag-value">
+            <label for="flagHex">FLAGS</label>
+            <input id="flagHex" value="0x0001" inputmode="text" spellcheck="false">
+          </div>
+          <div id="flagSummary" class="callout success"><strong>VALID</strong>유효한 측정값이 포함되어 있습니다.</div>
+        </article>
+        <div class="flag-list" id="flagList">
+          <label class="flag-item"><input type="checkbox" data-bit="0" checked><span><b>0x0001 · VALID</b><span>유효한 측정 결과 존재</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="1"><span><b>0x0002 · AFE_FAULT</b><span>SENSOR_FAULT_N low</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="2"><span><b>0x0004 · ADC_CRC_ERROR</b><span>ADC CRC 오류 누적</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="3"><span><b>0x0008 · ADC_FRAME_DROP</b><span>ring/bus frame drop 누적</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="4"><span><b>0x0010 · ADC_SPI_ERROR</b><span>ADC SPI 오류 누적</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="5"><span><b>0x0020 · ADC_OFFLINE</b><span>ADC 재연결 대기 상태</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="6"><span><b>0x0040 · DAC_ERROR</b><span>DAC offline 또는 오류 누적</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="7"><span><b>0x0080 · OUTPUT_CLIPPED</b><span>측정 또는 DAC 범위 clip</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="8"><span><b>0x0100 · LAN_LINK_DOWN</b><span>Ethernet physical link 없음</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="9"><span><b>0x0200 · LAN_NO_ADDRESS</b><span>IPv4 주소 미확정</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="10"><span><b>0x0400 · LAN_TX_ERROR</b><span>UDP 전송 오류 누적</span></span></label>
+          <label class="flag-item"><input type="checkbox" data-bit="11"><span><b>0x0800 · LAN_FRAME_DROP</b><span>메일박스 publish 실패 누적</span></span></label>
+        </div>
+      </div>
+      <div class="callout warn">
+        <strong>현재 상태와 누적 상태의 차이</strong>
+        <code>LAN_LINK_DOWN</code>, <code>LAN_NO_ADDRESS</code>, <code>ADC_OFFLINE</code>은 현재 상태입니다.
+        오류 카운터 기반 CRC/SPI/drop/DAC/LAN TX 플래그는 해당 초기화 주기에서 한 번이라도 오류가 발생하면 계속 표시될 수 있습니다.
+      </div>
+    </section>
+
+    <section id="recovery">
+      <h2><span class="section-num">08</span>복구와 안전 동작</h2>
+      <div class="grid two">
+        <article class="card">
+          <h3>ADC offline 전환 조건</h3>
+          <ul>
+            <li>SPI 오류가 한 실행 주기에서 <strong>4회 이상</strong></li>
+            <li>CRC 오류가 <strong>16 frame 연속</strong></li>
+            <li>정상 frame 진행이 <strong>500 ms 동안 없음</strong></li>
+          </ul>
+          <p class="muted small">Offline 전환 시 ADC를 정지하고 측정 유효 상태를 해제합니다.</p>
+        </article>
+        <article class="card">
+          <h3>안전 출력과 재시도</h3>
+          <ul>
+            <li>AFE fault 또는 ADC offline → DAC code <strong>32768</strong></li>
+            <li>ADC offline → <strong>1초마다</strong> 초기화 재시도</li>
+            <li>복구 성공 → IIR filter 초기화 후 새 측정 시작</li>
+            <li>LAN 단선 → 측정/DAC는 계속 실행, 전송만 보류</li>
+          </ul>
+        </article>
+      </div>
+      <h3>LED 의미</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>LED</th><th>동작</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td><span class="green">● Green</span></td><td>ADC/DAC 초기화 성공 시 ON, ADC offline 시 OFF</td><td>측정 계통 가용성</td></tr>
+            <tr><td><span class="amber">● Yellow</span></td><td>100 ms telemetry 주기마다 toggle</td><td>Application Thread heartbeat</td></tr>
+            <tr><td><span class="red">● Red</span></td><td>AFE fault, ADC offline, DAC error 중 하나면 ON</td><td>측정/출력 장애. LAN 오류만으로는 켜지지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="configuration">
+      <h2><span class="section-num">09</span>주요 설정 변경</h2>
+      <p>대부분의 운용 설정은 <code>Core/Inc/app_config.h</code> 한 파일에서 변경합니다.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab active" type="button" data-tab="cfgDhcp">DHCP + Broadcast</button>
+        <button class="tab" type="button" data-tab="cfgUnicast">고정 수신 PC</button>
+        <button class="tab" type="button" data-tab="cfgStatic">Static IP</button>
+        <button class="tab" type="button" data-tab="cfgBinary">Binary 전환</button>
+      </div>
+      <div class="tab-panel" id="cfgDhcp">
+        <button class="copy-btn" type="button" data-copy="codeDhcp">복사</button>
+        <pre id="codeDhcp"><code>#define APP_NETWORK_ENABLE               (1u)
+#define APP_NETWORK_USE_DHCP             (1u)
+#define APP_NETWORK_UDP_DESTINATION_0    (255u)
+#define APP_NETWORK_UDP_DESTINATION_1    (255u)
+#define APP_NETWORK_UDP_DESTINATION_2    (255u)
+#define APP_NETWORK_UDP_DESTINATION_3    (255u)
+#define APP_NETWORK_UDP_DESTINATION_PORT (5000u)</code></pre>
+      </div>
+      <div class="tab-panel" id="cfgUnicast" hidden>
+        <button class="copy-btn" type="button" data-copy="codeUnicast">복사</button>
+        <pre id="codeUnicast"><code>/* Example receiver: 192.168.0.100 */
+#define APP_NETWORK_UDP_DESTINATION_0    (192u)
+#define APP_NETWORK_UDP_DESTINATION_1    (168u)
+#define APP_NETWORK_UDP_DESTINATION_2    (0u)
+#define APP_NETWORK_UDP_DESTINATION_3    (100u)</code></pre>
+      </div>
+      <div class="tab-panel" id="cfgStatic" hidden>
+        <button class="copy-btn" type="button" data-copy="codeStatic">복사</button>
+        <pre id="codeStatic"><code>#define APP_NETWORK_USE_DHCP        (0u)
+#define APP_NETWORK_STATIC_IP_0     (192u)
+#define APP_NETWORK_STATIC_IP_1     (168u)
+#define APP_NETWORK_STATIC_IP_2     (0u)
+#define APP_NETWORK_STATIC_IP_3     (50u)
+/* mask: 255.255.255.0 / gateway: 192.168.0.1 */</code></pre>
+      </div>
+      <div class="tab-panel" id="cfgBinary" hidden>
+        <button class="copy-btn" type="button" data-copy="codeBinary">복사</button>
+        <pre id="codeBinary"><code>#define APP_TELEMETRY_FORMAT APP_TELEMETRY_FORMAT_BINARY
+
+/* UART mirror가 필요 없으면 */
+#define APP_TELEMETRY_UART_ENABLE (0u)</code></pre>
+      </div>
+    </section>
+
+    <section id="files">
+      <h2><span class="section-num">10</span>코드 파일 구성</h2>
+      <div class="file-tree">
+        <div class="file"><code>Core/Src/main.c</code><p>HAL 주변장치 초기화 후 ThreadX 커널 진입</p></div>
+        <div class="file"><code>Core/Src/app_threadx.c</code><p>Measurement Thread stack 할당과 생성</p></div>
+        <div class="file"><code>Core/Src/app.c</code><p>측정 orchestration, DAC/telemetry 주기, 복구 정책</p></div>
+        <div class="file"><code>Core/Src/ads131m08.c</code><p>ADC register, SPI DMA, CRC, 128-slot ring</p></div>
+        <div class="file"><code>Core/Src/measurement.c</code><p>raw → engineering unit → IIR → DAC code</p></div>
+        <div class="file"><code>Core/Src/dac8564.c</code><p>4채널 DAC 초기화 및 출력</p></div>
+        <div class="file"><code>Core/Src/telemetry.c</code><p>CSV/Binary 공통 frame 생성과 UART 전송</p></div>
+        <div class="file"><code>NetXDuo/App/app_netxduo.c</code><p>Packet/IP/UDP/DHCP, mailbox, LAN worker</p></div>
+        <div class="file"><code>Core/Src/eth.c</code><p>RMII HAL, UID 기반 MAC, ETH IRQ priority</p></div>
+        <div class="file"><code>Core/Inc/app_config.h</code><p>측정·복구·Thread·통신 설정 집중 관리</p></div>
+        <div class="file"><code>NetXDuo/Target/nx_user.h</code><p>IPv4 전용, interface capability, DHCP priority</p></div>
+        <div class="file"><code>Tools/cosmoke_udp_monitor.py</code><p>PC용 CSV/Binary UDP receiver</p></div>
+      </div>
+    </section>
+
+    <section id="test">
+      <h2><span class="section-num">11</span>PC 수신과 시험 절차</h2>
+      <div class="grid two">
+        <article class="card">
+          <h3>CSV 수신 · 현재 기본값</h3>
+          <button class="copy-btn" type="button" data-copy="cmdCsv">복사</button>
+          <pre id="cmdCsv"><code>python Tools\cosmoke_udp_monitor.py</code></pre>
+        </article>
+        <article class="card">
+          <h3>64-byte Binary 수신</h3>
+          <button class="copy-btn" type="button" data-copy="cmdBinary">복사</button>
+          <pre id="cmdBinary"><code>python Tools\cosmoke_udp_monitor.py --binary</code></pre>
+        </article>
+      </div>
+      <ol class="steps">
+        <li>보드 Ethernet을 DHCP router 또는 switch에 연결합니다.</li>
+        <li>PC 방화벽에서 UDP destination port <code>5000</code> 수신을 허용합니다.</li>
+        <li>PC에서 monitor를 먼저 실행하고 펌웨어를 reset합니다.</li>
+        <li>Yellow LED가 약 10 Hz telemetry 기준으로 toggle되는지 확인합니다.</li>
+        <li>CSV line 또는 Binary decoded line의 source IP, sequence, flags를 확인합니다.</li>
+      </ol>
+      <h3>검증 체크리스트</h3>
+      <ul class="checklist">
+        <li>DHCP lease 및 보드 IPv4 확인</li>
+        <li>10 Hz UDP datagram 수신</li>
+        <li>sequence 증가와 timestamp 진행</li>
+        <li>정상 시 flags에 VALID 포함</li>
+        <li>LAN 케이블 제거 시 측정/DAC 지속</li>
+        <li>재연결 후 UDP 송신 재개</li>
+        <li>UART COM1과 LAN 값 일치</li>
+        <li>Binary CRC와 length 64 확인</li>
+      </ul>
+      <div class="callout warn">
+        <strong>브로드캐스트 수신이 보이지 않을 때</strong>
+        PC 방화벽, Wi-Fi AP의 client isolation, VLAN 경계, managed switch의 broadcast 정책을 먼저 확인하십시오.
+        운용 환경에서는 수신 서버의 고정 IP로 unicast하는 구성이 더 예측 가능합니다.
+      </div>
+    </section>
+
+    <footer>
+      <strong>COSMOKE H563 Firmware Guide</strong><br>
+      현재 workspace 코드 기준 · 문서 갱신일 2026-08-12 · 단일 파일 오프라인 HTML
+    </footer>
+  </main>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const themeButton = document.getElementById("themeButton");
+  themeButton.addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+  });
+
+  const tabs = document.querySelectorAll(".tab");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const panel = document.getElementById(tab.dataset.tab);
+      const group = tab.parentElement;
+      group.querySelectorAll(".tab").forEach((peer) => peer.classList.remove("active"));
+      let sibling = group.nextElementSibling;
+      while (sibling && sibling.classList.contains("tab-panel")) {
+        sibling.hidden = true;
+        sibling = sibling.nextElementSibling;
+      }
+      tab.classList.add("active");
+      panel.hidden = false;
+    });
+  });
+
+  document.querySelectorAll("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const target = document.getElementById(button.dataset.copy);
+      const text = target.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "복사됨";
+      } catch {
+        button.textContent = "선택 후 복사";
+      }
+      setTimeout(() => button.textContent = "복사", 1300);
+    });
+  });
+
+  const flagHex = document.getElementById("flagHex");
+  const flagChecks = [...document.querySelectorAll("#flagList input")];
+  const flagSummary = document.getElementById("flagSummary");
+  const flagNames = [
+    "VALID", "AFE_FAULT", "ADC_CRC_ERROR", "ADC_FRAME_DROP",
+    "ADC_SPI_ERROR", "ADC_OFFLINE", "DAC_ERROR", "OUTPUT_CLIPPED",
+    "LAN_LINK_DOWN", "LAN_NO_ADDRESS", "LAN_TX_ERROR", "LAN_FRAME_DROP"
+  ];
+
+  function showFlagValue(value) {
+    value &= 0xFFFF;
+    flagHex.value = "0x" + value.toString(16).toUpperCase().padStart(4, "0");
+    flagChecks.forEach((check) => check.checked = Boolean(value & (1 << Number(check.dataset.bit))));
+    const active = flagNames.filter((_, bit) => value & (1 << bit));
+    const hasFault = (value & 0x0FFE) !== 0;
+    flagSummary.className = "callout " + (hasFault ? "warn" : "success");
+    flagSummary.innerHTML = active.length
+      ? "<strong>" + active.join(" · ") + "</strong>" + (hasFault ? "상태 또는 누적 오류 플래그를 확인하십시오." : "유효한 측정값이 포함되어 있습니다.")
+      : "<strong>NO FLAGS</strong>유효 측정값 표시도 없는 상태입니다.";
+  }
+
+  flagChecks.forEach((check) => {
+    check.addEventListener("change", () => {
+      const value = flagChecks.reduce((sum, item) =>
+        sum | (item.checked ? (1 << Number(item.dataset.bit)) : 0), 0);
+      showFlagValue(value);
+    });
+  });
+  flagHex.addEventListener("change", () => {
+    const parsed = Number.parseInt(flagHex.value.replace(/^0x/i, ""), 16);
+    showFlagValue(Number.isFinite(parsed) ? parsed : 0);
+  });
+
+  const navLinks = [...document.querySelectorAll("#sideNav a")];
+  const sections = navLinks.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        navLinks.forEach((link) => link.classList.toggle(
+          "active", link.getAttribute("href") === "#" + entry.target.id
+        ));
+      }
+    });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  sections.forEach((section) => observer.observe(section));
+</script>
+</body>
+</html>

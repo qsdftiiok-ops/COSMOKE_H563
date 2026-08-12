@@ -1,0 +1,36 @@
+{
+  "configurations": [
+    {
+      "name": "STM32",
+      "includePath": [
+        "${workspaceFolder}/Core/Inc",
+        "${workspaceFolder}/AZURE_RTOS/App",
+        "${workspaceFolder}/NetXDuo/App",
+        "${workspaceFolder}/NetXDuo/Target",
+        "${workspaceFolder}/Drivers/STM32H5xx_HAL_Driver/Inc",
+        "${workspaceFolder}/Drivers/STM32H5xx_HAL_Driver/Inc/Legacy",
+        "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32H5xx/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Include",
+        "${workspaceFolder}/Drivers/BSP/STM32H5xx_Nucleo",
+        "${workspaceFolder}/Drivers/BSP/Components/lan8742",
+        "${workspaceFolder}/Middlewares/ST/threadx/common/inc",
+        "${workspaceFolder}/Middlewares/ST/threadx/ports/cortex_m33/gnu/inc",
+        "${workspaceFolder}/Middlewares/ST/netxduo/common/inc",
+        "${workspaceFolder}/Middlewares/ST/netxduo/ports/cortex_m33/gnu/inc",
+        "${workspaceFolder}/Middlewares/ST/netxduo/addons/dhcp"
+      ],
+      "defines": [
+        "USE_HAL_DRIVER",
+        "STM32H563xx",
+        "USE_NUCLEO_144",
+        "USE_NUCLEO_H563ZI",
+        "DEBUG"
+      ],
+      "compilerPath": "C:/ST/gnu-tools-for-stm32/bin/arm-none-eabi-gcc.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-arm"
+    }
+  ],
+  "version": 4
+}

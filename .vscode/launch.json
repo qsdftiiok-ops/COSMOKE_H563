@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Cortex Debug (ST-Link)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "stlink",
+      "armToolchainPath": "C:/ST/gnu-tools-for-stm32/bin",
+      "gdbPath": "C:/ST/gnu-tools-for-stm32/bin/arm-none-eabi-gdb.exe",
+      "stlinkPath": "C:/ST/stlink-gdbserver/bin/ST-LINK_gdbserver.exe",
+      "stm32cubeprogrammer": "C:/ST/programmer/bin",
+      "serverArgs": [
+        "-m",
+        "1",
+        "--temp-path",
+        "C:/ST/temp"
+      ],
+      "executable": "${workspaceFolder}/build/firmware-debug/COSMOKE_H563.elf",
+      "device": "STM32H563ZI",
+      "interface": "swd",
+      "preLaunchTask": "Build Firmware (Debug)"
+    }
+  ]
+}

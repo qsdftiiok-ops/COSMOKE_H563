@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Firmware (Debug)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File Tools/Build-Firmware.ps1 -Configuration Debug",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Flash Firmware (Debug)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File Tools/Flash-Firmware.ps1",
+      "dependsOn": [
+        "Build Firmware (Debug)"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Firmware (Release)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File Tools/Build-Firmware.ps1 -Configuration Release",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

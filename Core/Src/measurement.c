@@ -1,0 +1,163 @@
+#include "measurement.h"
+#include "app_config.h"
+#include <string.h>
+
+typedef struct
+{
+  int32_t zero_counts;
+  float volts_per_unit;
+  float scale_trim;
+  float offset_units;
+  float polarity;
+  float filter_alpha;
+  float full_scale_units;
+} ChannelConfig;
+
+static const ChannelConfig k_channel_config[MEAS_CHANNEL_COUNT] =
+{
+  {APP_CH0_ZERO_COUNTS, APP_CH0_VOLTS_PER_UNIT, APP_CH0_SCALE_TRIM,
+   APP_CH0_OFFSET_UNITS, APP_CH0_POLARITY, APP_CH0_FILTER_ALPHA,
+   APP_CH0_FULL_SCALE_UNITS},
+  {APP_CH1_ZERO_COUNTS, APP_CH1_VOLTS_PER_UNIT, APP_CH1_SCALE_TRIM,
+   APP_CH1_OFFSET_UNITS, APP_CH1_POLARITY, APP_CH1_FILTER_ALPHA,
+   APP_CH1_FULL_SCALE_UNITS},
+  {APP_CH2_ZERO_COUNTS, APP_CH2_VOLTS_PER_UNIT, APP_CH2_SCALE_TRIM,
+   APP_CH2_OFFSET_UNITS, APP_CH2_POLARITY, APP_CH2_FILTER_ALPHA,
+   APP_CH2_FULL_SCALE_UNITS},
+  {APP_CH3_ZERO_COUNTS, APP_CH3_VOLTS_PER_UNIT, APP_CH3_SCALE_TRIM,
+   APP_CH3_OFFSET_UNITS, APP_CH3_POLARITY, APP_CH3_FILTER_ALPHA,
+   APP_CH3_FULL_SCALE_UNITS}
+};
+
+static float ClampFloat(float value, float low, float high, bool *clipped)
+{
+  if (value < low)
+  {
+    *clipped = true;
+    return low;
+  }
+  if (value > high)
+  {
+    *clipped = true;
+    return high;
+  }
+  return value;
+}
+
+void Measurement_Init(MeasurementFilterState *state)
+{
+  if (state != NULL)
+  {
+    memset(state, 0, sizeof(*state));
+  }
+}
+
+bool Measurement_ProcessFrame(MeasurementFilterState *state,
+                              const MeasurementRawFrame *frame,
+                              MeasurementResult *result)
+{
+  const float volts_per_count =
+    APP_ADC_REFERENCE_V / (8388608.0f * APP_ADC_PGA_GAIN);
+
+  if (state == NULL || frame == NULL || result == NULL)
+  {
+    return false;
+  }
+
+#if (APP_ADC_VERIFY_OUTPUT_CRC != 0u)
+  if (!frame->crc_ok)
+  {
+    return false;
+  }
+#endif
+
+  memset(result, 0, sizeof(*result));
+  result->sequence = frame->sequence;
+  result->timestamp_ms = frame->timestamp_ms;
+  result->adc_status = frame->adc_status;
+
+  for (uint32_t channel = 0u; channel < MEAS_CHANNEL_COUNT; ++channel)
+  {
+    const ChannelConfig *config = &k_channel_config[channel];
+    int32_t corrected_counts = frame->raw[channel] - config->zero_counts;
+    float adc_volts = (float)corrected_counts * volts_per_count;
+    float units = (adc_volts / config->volts_per_unit) *
+                  config->scale_trim * config->polarity + config->offset_units;
+    float alpha = config->filter_alpha;
+
+    if (alpha < 0.0f)
+    {
+      alpha = 0.0f;
+    }
+    else if (alpha > 1.0f)
+    {
+      alpha = 1.0f;
+    }
+
+    result->raw[channel] = frame->raw[channel];
+    result->value[channel] = units;
+    if (!state->initialized)
+    {
+      state->filtered[channel] = units;
+    }
+    else
+    {
+      state->filtered[channel] +=
+        alpha * (units - state->filtered[channel]);
+    }
+    result->filtered[channel] = state->filtered[channel];
+  }
+
+  state->initialized = true;
+  Measurement_MakeDacCodes(result);
+  return true;
+}
+
+void Measurement_MakeDacCodes(MeasurementResult *result)
+{
+  if (result == NULL)
+  {
+    return;
+  }
+
+  result->clipped = false;
+  for (uint32_t channel = 0u; channel < MEAS_CHANNEL_COUNT; ++channel)
+  {
+    const float full_scale = k_channel_config[channel].full_scale_units;
+    float normalized = result->filtered[channel] / full_scale;
+    float code_f;
+
+    normalized = ClampFloat(normalized, -1.0f, 1.0f, &result->clipped);
+    code_f = (float)APP_DAC_CENTER_CODE + normalized * (float)APP_DAC_SPAN_CODE;
+    if (code_f < 0.0f)
+    {
+      code_f = 0.0f;
+    }
+    else if (code_f > 65535.0f)
+    {
+      code_f = 65535.0f;
+    }
+    result->dac_code[channel] = (uint16_t)(code_f + 0.5f);
+
+    if (result->filtered[channel] < -(full_scale * APP_CLIP_MARGIN) ||
+        result->filtered[channel] > (full_scale * APP_CLIP_MARGIN))
+    {
+      result->clipped = true;
+    }
+  }
+}
+
+int32_t Measurement_UnitsToMilli(float value)
+{
+  float scaled = value * 1000.0f;
+
+  if (scaled >= 2147483520.0f)
+  {
+    return INT32_MAX;
+  }
+  if (scaled <= -2147483520.0f)
+  {
+    return INT32_MIN;
+  }
+  return (int32_t)(scaled + ((scaled >= 0.0f) ? 0.5f : -0.5f));
+}

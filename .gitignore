@@ -1,0 +1,15 @@
+# Build outputs
+build/
+tmp/
+.tool-tmp/
+*.exe
+*.o
+*.obj
+*.elf
+*.hex
+*.bin
+
+# IDE / Tool settings
+.vscode/*.log
+.vscode/.cmakesettings
+.settings/
