@@ -8,18 +8,29 @@ Run from the project root:
 from __future__ import annotations
 
 import argparse
+import csv
 import queue
 import socket
 import threading
 import time
 from collections import deque
+from datetime import datetime, timezone
+from pathlib import Path
 
 try:
     import tkinter as tk
+    from tkinter import filedialog, messagebox
 except ImportError as error:  # pragma: no cover - depends on the local Python install
     raise SystemExit("tkinter가 포함된 Python이 필요합니다. 일반 Windows Python 설치본을 사용하세요.") from error
 
-from cosmoke_udp_monitor import PACKET_SIZE, decode_binary, flag_text
+from cosmoke_udp_monitor import (
+    CAPTURE_COLUMNS,
+    PACKET_SIZE,
+    SequenceStats,
+    capture_row,
+    decode_binary,
+    flag_text,
+)
 
 
 CSV_FIELDS = (
@@ -58,6 +69,7 @@ def decode_packet(packet: bytes) -> dict:
             "raw_i2": decoded["raw"][2], "raw_v2": decoded["raw"][3],
             "dac_i1": decoded["dac"][0], "dac_v1": decoded["dac"][1],
             "dac_i2": decoded["dac"][2], "dac_v2": decoded["dac"][3],
+            "raw": decoded["raw"], "scaled": decoded["scaled"], "dac": decoded["dac"],
             "dropped": decoded["dropped"], "crc_errors": decoded["crc_errors"],
             "spi_errors": None, "dac_errors": None,
             "raw_csv": "(64 B binary packet)", "format": "BINARY",
@@ -95,6 +107,8 @@ class UdpReceiver(threading.Thread):
                 try:
                     frame = decode_packet(packet)
                     frame["peer"] = peer[0]
+                    frame["peer_address"] = peer
+                    frame["received_at"] = datetime.now(timezone.utc)
                     self.output.put(("frame", frame))
                 except (UnicodeDecodeError, ValueError, KeyError) as error:
                     self.output.put(("decode_error", str(error)))
@@ -173,6 +187,10 @@ class Dashboard:
         self.last_frame_time = None
         self.packet_count = 0
         self.histories = {name: deque(maxlen=120) for name in ("i1", "v1", "i2", "v2")}
+        self.capture_file = None
+        self.capture_writer = None
+        self.capture_path: Path | None = None
+        self.capture_stats = SequenceStats()
 
         self.connection = tk.StringVar(value=f"LISTENING  {bind}:{port}")
         self.connection_detail = tk.StringVar(value="UDP packet waiting…")
@@ -180,6 +198,7 @@ class Dashboard:
         self.adc = tk.StringVar(value="ADC status: —")
         self.counters = tk.StringVar(value="Dropped: —   CRC: —   SPI: —   DAC: —")
         self.latest = tk.StringVar(value="Latest datagram: waiting")
+        self.capture_status = tk.StringVar(value="CSV 저장: 대기")
 
         self._build()
         self.receiver.start()
@@ -233,6 +252,19 @@ class Dashboard:
                  font=("Consolas", 9), fg="#9eb6cd", bg="#0b1726").grid(row=0, column=0, sticky="ew")
         tk.Button(footer, text="Clear trend", command=self.clear_trend, bg="#254761", fg="white",
                   activebackground="#326783", activeforeground="white", relief="flat", padx=12, pady=6).grid(row=0, column=1, padx=(12, 0))
+        tk.Label(footer, textvariable=self.capture_status, justify="left", anchor="w",
+                 font=("Segoe UI", 9, "bold"), fg="#8fe6d0", bg="#0b1726").grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        self.start_capture_button = tk.Button(
+            footer, text="CSV 저장 시작", command=self.start_capture, bg="#0f7c86", fg="white",
+            activebackground="#1496a1", activeforeground="white", relief="flat", padx=12, pady=6,
+        )
+        self.start_capture_button.grid(row=1, column=1, padx=(12, 0), pady=(8, 0), sticky="e")
+        self.stop_capture_button = tk.Button(
+            footer, text="저장 종료", command=self.stop_capture, bg="#7f1d1d", fg="white",
+            activebackground="#b91c1c", activeforeground="white", relief="flat", padx=12, pady=6,
+            state="disabled",
+        )
+        self.stop_capture_button.grid(row=1, column=2, padx=(8, 0), pady=(8, 0), sticky="e")
 
     def poll(self) -> None:
         newest = None
@@ -242,6 +274,7 @@ class Dashboard:
             except queue.Empty:
                 break
             if kind == "frame":
+                self.record_capture(payload)
                 newest = payload
             elif kind == "error":
                 self.connection.set("UDP ERROR")
@@ -251,6 +284,64 @@ class Dashboard:
         if newest:
             self.show_frame(newest)
         self.root.after(30, self.poll)
+
+    def start_capture(self) -> None:
+        if self.capture_file is not None:
+            return
+        logs_dir = Path.cwd() / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        default_name = datetime.now().strftime("cosmoke_capture_%Y%m%d_%H%M%S.csv")
+        selected = filedialog.asksaveasfilename(
+            title="COSMOKE 텔레메트리 CSV 저장",
+            initialdir=logs_dir,
+            initialfile=default_name,
+            defaultextension=".csv",
+            filetypes=(("CSV files", "*.csv"), ("All files", "*.*")),
+        )
+        if not selected:
+            return
+        self.capture_path = Path(selected)
+        self.capture_file = self.capture_path.open("w", newline="", encoding="utf-8")
+        self.capture_writer = csv.DictWriter(self.capture_file, fieldnames=CAPTURE_COLUMNS)
+        self.capture_writer.writeheader()
+        self.capture_file.flush()
+        self.capture_stats = SequenceStats()
+        self.capture_status.set(f"CSV 저장 중: {self.capture_path.name}  ·  0 frames")
+        self.start_capture_button.configure(state="disabled")
+        self.stop_capture_button.configure(state="normal")
+
+    def record_capture(self, frame: dict) -> None:
+        if self.capture_writer is None or self.capture_file is None:
+            return
+        row = capture_row(
+            frame,
+            frame["peer_address"],
+            frame["format"].lower(),
+            frame["received_at"],
+        )
+        self.capture_writer.writerow(row)
+        self.capture_file.flush()
+        self.capture_stats.add(row["sequence"], row["device_ms"])
+        self.capture_status.set(
+            f"CSV 저장 중: {self.capture_path.name}  ·  {self.capture_stats.frames:,} frames"
+        )
+
+    def stop_capture(self, show_notice: bool = True) -> None:
+        if self.capture_file is None:
+            return
+        self.capture_file.close()
+        summary = (
+            f"{self.capture_path.name} 저장 완료 · {self.capture_stats.frames:,} frames · "
+            f"추정 UDP 유실 {self.capture_stats.lost:,} · "
+            f"재부팅/역순 {self.capture_stats.resets_or_reorders:,}"
+        )
+        self.capture_file = None
+        self.capture_writer = None
+        self.capture_status.set(summary)
+        self.start_capture_button.configure(state="normal")
+        self.stop_capture_button.configure(state="disabled")
+        if show_notice:
+            messagebox.showinfo("CSV 저장 완료", f"{summary}\n\n저장 위치:\n{self.capture_path}")
 
     def show_frame(self, frame: dict) -> None:
         self.last_frame_time = time.monotonic()
@@ -299,6 +390,7 @@ class Dashboard:
             chart.set_values(())
 
     def close(self) -> None:
+        self.stop_capture(show_notice=False)
         self.stop.set()
         self.root.destroy()
 

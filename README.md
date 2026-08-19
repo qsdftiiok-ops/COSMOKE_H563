@@ -17,6 +17,7 @@ STM32H563 기반 4채널 전류·전압 계측 및 아날로그 출력 펌웨어
 
 - [운영 및 시험 가이드](docs/OPERATIONS.md): 빌드, 플래시, LAN 수신, 상태 확인 및 벤치 시험
 - [아키텍처](docs/ARCHITECTURE.md): 데이터 경로, ThreadX 구성, 상태 머신, 복구 및 텔레메트리
+- [펌웨어 성능 시험 기록표](docs/COSMOKE_H563_Firmware_Performance_Test_Record.xlsx): 시험 계획, 절차, 결과, 대시보드 및 튜닝 프로파일
 
 ## 대상 및 기본 통신 설정
 

@@ -29,7 +29,7 @@ make flash
 make gui
 ```
 
-대시보드는 기본적으로 모든 PC 인터페이스의 UDP `5000` 포트를 수신합니다. 보드 IP, sequence, 보드 시간, 상태 플래그와 오류 카운터를 표시합니다.
+대시보드는 기본적으로 모든 PC 인터페이스의 UDP `5000` 포트를 수신합니다. 보드 IP, sequence, 보드 시간, 상태 플래그와 오류 카운터를 표시합니다. 하단의 `CSV 저장 시작`을 누르면 파일 위치를 선택할 수 있고, `저장 종료`를 누르면 파일을 닫은 뒤 프레임 수·추정 UDP 유실·재부팅/역순 sequence 횟수를 표시합니다.
 
 ### 콘솔 모니터
 
@@ -38,6 +38,16 @@ python .\Tools\cosmoke_udp_monitor.py --show-flags
 ```
 
 펌웨어 기본 포맷은 CSV입니다. binary 포맷을 사용하면 모니터가 64-byte v1 패킷을 자동 감지합니다.
+
+### 성능 시험용 CSV 캡처
+
+PC 수신 시각(UTC), 보드 경과시간, sequence, 상태 플래그와 오류 카운터를 하나의 CSV로 저장하려면 다음처럼 실행합니다.
+
+```powershell
+python .\Tools\cosmoke_udp_monitor.py --csv-out .\logs\soak_001.csv --show-flags
+```
+
+기존 파일에 이어 기록하려면 `--append`를 함께 지정합니다. 캡처를 `Ctrl+C`로 종료하면 수신 프레임 수, 추정 UDP 유실 수, 재부팅/역순 sequence 감지 횟수를 표시합니다. `received_at`은 PC 수신 시각이고 `device_ms`는 MCU 부팅 후 경과시간이므로, 보드 재부팅 또는 장시간 시험 분석에는 두 열을 함께 사용합니다.
 
 ## 상태 확인
 
