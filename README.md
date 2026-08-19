@@ -13,6 +13,11 @@ STM32H563 기반 4채널 전류·전압 계측 및 아날로그 출력 펌웨어
 - 계측·네트워크 heartbeat를 이용한 IWDG supervisor
 - CSV(기본) 및 64-byte binary 텔레메트리, Python UDP 대시보드
 
+## 문서
+
+- [운영 및 시험 가이드](docs/OPERATIONS.md): 빌드, 플래시, LAN 수신, 상태 확인 및 벤치 시험
+- [아키텍처](docs/ARCHITECTURE.md): 데이터 경로, ThreadX 구성, 상태 머신, 복구 및 텔레메트리
+
 ## 대상 및 기본 통신 설정
 
 - MCU: STM32H563
@@ -25,7 +30,7 @@ STM32H563 기반 4채널 전류·전압 계측 및 아날로그 출력 펌웨어
 
 운영 환경에서는 `Core/Inc/app_config.h`에서 UDP 목적지를 관제 PC의 유니캐스트 IP로 변경하는 것을 권장합니다.
 
-## 빌드
+## 빠른 시작
 
 Windows PowerShell에서 STM32CubeCLT/CubeMX 번들 도구 또는 동등한 GNU Arm Toolchain을 준비한 뒤 실행합니다.
 
@@ -39,40 +44,15 @@ make build
 - `COSMOKE_H563.hex`
 - `COSMOKE_H563.bin`
 
-## 프로그래밍
-
-ST-LINK 연결 및 대상 전원을 확인한 뒤 다음을 실행합니다.
+ST-LINK와 대상 전원을 연결한 뒤 다음을 실행합니다.
 
 ```powershell
 make connect
 make flash
+make gui
 ```
 
-`make flash`는 빌드, 프로그램 기록, 검증 및 리셋을 수행합니다.
-
-## 텔레메트리와 대시보드
-
-PC에서 UDP 5000번 포트를 수신합니다.
-
-```powershell
-python .\Tools\cosmoke_udp_monitor.py --show-flags
-python .\Tools\cosmoke_dashboard.py
-```
-
-대시보드는 CSV와 binary 패킷을 자동으로 해석하며, `MUTED`, `WARMUP`, ADC/DAC/LAN fault 상태를 표시합니다.
-
-## 안전 및 실기 시험
-
-이 펌웨어는 ADC·DAC 통신 이상 시 safe DAC code, 상태 플래그, 복구 절차를 수행합니다. 실제 부하를 연결하기 전에는 다음을 벤치 환경에서 확인하십시오.
-
-1. `WARMUP`에서 `ACTIVE`로 정상 전이되는지 확인합니다.
-2. ADC DRDY 또는 SPI 장애 시 `MUTED`와 재복구가 동작하는지 확인합니다.
-3. LAN 미연결 상태에서도 watchdog 재부팅 반복이 없는지 확인합니다.
-4. 실제 하드웨어 Mute/CLR 제어선이 있는 보드에서는 회로도에 맞는 GPIO 구현과 출력 차단 동작을 검증합니다.
-
-## 보정
-
-`Core/Inc/app_config.h`의 `APP_CHx_ZERO_COUNTS`, `APP_CHx_SCALE_TRIM`, `APP_CHx_OFFSET_UNITS`는 실측값으로 보정해야 합니다. 영점과 최소 두 개의 스팬 지점에서 검증하고, 보정 장비·온도·날짜·펌웨어 버전을 기록하십시오.
+`make flash`는 빌드, 기록, 검증 및 MCU 리셋을 수행합니다. 상세 절차와 안전 조건은 [운영 및 시험 가이드](docs/OPERATIONS.md)를 확인하세요.
 
 ## 프로젝트 구조
 
@@ -82,4 +62,5 @@ NetXDuo/       Ethernet/UDP 텔레메트리
 AZURE_RTOS/    ThreadX 메모리 및 커널 설정
 Tools/         빌드·플래시·UDP 모니터·대시보드 도구
 Tests/host/    호스트 측 측정 변환 테스트
+docs/          운영·시험 및 아키텍처 문서
 ```

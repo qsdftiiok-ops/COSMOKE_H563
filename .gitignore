@@ -13,3 +13,8 @@ tmp/
 .vscode/*.log
 .vscode/.cmakesettings
 .settings/
+
+# Local tooling and Python bytecode
+__pycache__/
+*.py[cod]
+.clangd
