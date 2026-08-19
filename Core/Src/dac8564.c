@@ -3,7 +3,12 @@
 #include "main.h"
 
 static SPI_HandleTypeDef *s_spi;
-static uint32_t s_error_count;
+static uint32_t s_channel_transfer_errors;
+static uint32_t s_failed_update_cycles;
+static uint32_t s_consecutive_goods;
+static uint32_t s_consecutive_fails;
+static bool s_is_healthy;
+static bool s_has_fault;
 
 static bool Transmit24(uint32_t value)
 {
@@ -19,7 +24,7 @@ static bool Transmit24(uint32_t value)
   HAL_GPIO_WritePin(DAC_CS_N_GPIO_Port, DAC_CS_N_Pin, GPIO_PIN_SET);
   if (status != HAL_OK)
   {
-    s_error_count++;
+    s_channel_transfer_errors++;
     return false;
   }
   return true;
@@ -28,13 +33,22 @@ static bool Transmit24(uint32_t value)
 bool DAC8564_Init(SPI_HandleTypeDef *spi)
 {
   s_spi = spi;
-  s_error_count = 0u;
+  s_channel_transfer_errors = 0u;
+  s_failed_update_cycles = 0u;
+  s_consecutive_goods = 0u;
+  s_consecutive_fails = 0u;
+  s_is_healthy = false;
+  s_has_fault = false;
   HAL_GPIO_WritePin(ADC_CS_N_GPIO_Port, ADC_CS_N_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(DAC_CS_N_GPIO_Port, DAC_CS_N_Pin, GPIO_PIN_SET);
 
   /* Keep the 2.5-V internal reference powered, independent of DAC state. */
   if (!Transmit24(0x011000u))
   {
+    s_failed_update_cycles++;
+    s_consecutive_fails++;
+    s_is_healthy = false;
+    s_has_fault = true;
     return false;
   }
   return DAC8564_WriteSafe();
@@ -47,7 +61,7 @@ bool DAC8564_WriteChannel(DAC8564_Channel channel, uint16_t code)
 
   if ((uint32_t)channel >= DAC8564_CHANNEL_COUNT)
   {
-    s_error_count++;
+    s_channel_transfer_errors++;
     return false;
   }
 
@@ -59,11 +73,15 @@ bool DAC8564_WriteChannel(DAC8564_Channel channel, uint16_t code)
 
 bool DAC8564_WriteAll(const uint16_t code[DAC8564_CHANNEL_COUNT])
 {
-  bool ok = true;
+  bool cycle_ok = true;
 
   if (code == NULL)
   {
-    s_error_count++;
+    s_failed_update_cycles++;
+    s_consecutive_fails++;
+    s_consecutive_goods = 0u;
+    s_is_healthy = false;
+    s_has_fault = true;
     return false;
   }
 
@@ -71,10 +89,32 @@ bool DAC8564_WriteAll(const uint16_t code[DAC8564_CHANNEL_COUNT])
   {
     if (!DAC8564_WriteChannel((DAC8564_Channel)channel, code[channel]))
     {
-      ok = false;
+      cycle_ok = false;
     }
   }
-  return ok;
+
+  if (cycle_ok)
+  {
+    s_consecutive_fails = 0u;
+    s_consecutive_goods++;
+    if (s_consecutive_goods >= 3u)
+    {
+      s_is_healthy = true;
+      s_has_fault = false;
+    }
+  }
+  else
+  {
+    s_failed_update_cycles++;
+    s_consecutive_goods = 0u;
+    s_consecutive_fails++;
+    if (s_consecutive_fails >= 2u)
+    {
+      s_is_healthy = false;
+      s_has_fault = true;
+    }
+  }
+  return cycle_ok;
 }
 
 bool DAC8564_WriteSafe(void)
@@ -87,7 +127,27 @@ bool DAC8564_WriteSafe(void)
   return DAC8564_WriteAll(safe);
 }
 
+bool DAC8564_IsHealthy(void)
+{
+  return s_is_healthy;
+}
+
+bool DAC8564_HasFault(void)
+{
+  return s_has_fault;
+}
+
+uint32_t DAC8564_GetChannelErrors(void)
+{
+  return s_channel_transfer_errors;
+}
+
+uint32_t DAC8564_GetFailedCycles(void)
+{
+  return s_failed_update_cycles;
+}
+
 uint32_t DAC8564_GetErrorCount(void)
 {
-  return s_error_count;
+  return s_failed_update_cycles;
 }

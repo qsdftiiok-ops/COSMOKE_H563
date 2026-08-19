@@ -282,6 +282,9 @@ build\firmware-debug\COSMOKE_H563.bin</pre>
         </div></div>
         <div class="quick-step"><div class="step-no">3</div><div class="step-body"><h3>PC 수신기를 먼저 실행</h3><pre>Set-Location C:\stm32\COSMOKE_H563
 python .\Tools\cosmoke_udp_monitor.py --bind 0.0.0.0 --port 5000</pre><p>방화벽 경고가 나타나면 <b>개인 네트워크</b>에서 Python 수신을 허용합니다. 또는 Windows 방화벽에서 UDP 5000 수신을 허용하십시오.</p></div></div>
+      <div class="notice success"><strong>화면으로 보기:</strong> 콘솔 수신기를 <code>Ctrl+C</code>로 종료한 뒤 아래 명령을 실행하면, 전류·전압 4개, 상태 플래그, 오류 카운터와 최근 추세를 한 화면에서 볼 수 있습니다. 별도 패키지 설치는 필요 없습니다.<pre>python .\Tools\cosmoke_dashboard.py
+# 또는 GNU Make가 설치되어 있다면
+make gui</pre><p>같은 UDP 5000 포트를 동시에 두 프로그램이 사용할 수 없으므로 <b>콘솔 모니터와 GUI는 하나만</b> 실행하십시오.</p></div>
         <div class="quick-step"><div class="step-no">4</div><div class="step-body"><h3>데이터 확인</h3><p>플래시 명령이 이미 리셋을 수행합니다. 수신기를 먼저 실행한 뒤 NUCLEO RESET 버튼을 누르거나 플래시 스크립트를 다시 실행합니다. 케이블을 부팅 후에 꽂아도 펌웨어가 물리 링크를 감지해 약 1초 간격으로 자동 활성화를 재시도합니다. 수신기에는 다음처럼 <b>송신 보드 IP가 앞에 붙은 CSV</b>가 표시됩니다.</p><pre>Listening on 0.0.0.0:5000 (auto)
 192.168.0.50,42,1234,0x0001,0x0000,1250,12000,-500,239000,...</pre></div></div>
       </div>

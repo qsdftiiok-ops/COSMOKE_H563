@@ -140,4 +140,14 @@
 #define APP_ADC_MAX_SPI_ERRORS_PER_RUN        (4u)
 #define APP_CLIP_MARGIN                      (1.05f)
 
+/* State Machine & Warmup -------------------------------------------------- */
+#define APP_WARMUP_REQUIRED_FRAMES            (10u)
+#define APP_WARMUP_TIMEOUT_MS                 (2000u)
+
+/* Watchdog / Supervisor --------------------------------------------------- */
+#define APP_WATCHDOG_ENABLE                   (1u)
+#define APP_WATCHDOG_TIMEOUT_MS               (1000u)
+#define APP_WATCHDOG_MEAS_GRACE_MS            (400u)
+#define APP_WATCHDOG_NET_GRACE_MS             (2500u)
+
 #endif /* APP_CONFIG_H */
