@@ -184,7 +184,14 @@
   */
 
 #define  VDD_VALUE                  3300UL /*!< Value of VDD in mv */
-#define  TICK_INT_PRIORITY          (15UL)  /*!< tick interrupt priority (lowest by default) */
+/*
+ * TIM6 drives HAL_GetTick(), which timestamps ADC frames and schedules DAC,
+ * telemetry, recovery, and watchdog supervision.  Do not leave it at the
+ * lowest priority: a continuous ADC/DMA/ETH interrupt load can coalesce TIM6
+ * update events and make the software millisecond clock run slow.  Priority 1
+ * keeps ADC/DMA (priority 0) first while protecting the time base.
+ */
+#define  TICK_INT_PRIORITY          (1UL)
 #define  USE_RTOS                   0U
 #define  PREFETCH_ENABLE            0U               /*!< Enable prefetch */
 
