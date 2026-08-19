@@ -116,12 +116,12 @@ class UdpReceiver(threading.Thread):
 
 class MetricCard(tk.Frame):
     def __init__(self, parent: tk.Misc, title: str, color: str):
-        super().__init__(parent, bg="#14253a", padx=18, pady=14, highlightthickness=1,
+        super().__init__(parent, bg="#14253a", padx=14, pady=10, highlightthickness=1,
                          highlightbackground="#2b4661")
-        tk.Label(self, text=title, font=("Segoe UI", 11, "bold"), fg=color, bg="#14253a").pack(anchor="w")
+        tk.Label(self, text=title, font=("Segoe UI", 10, "bold"), fg=color, bg="#14253a").pack(anchor="w")
         self.value = tk.StringVar(value="—")
         self.sub = tk.StringVar(value="waiting")
-        tk.Label(self, textvariable=self.value, font=("Segoe UI", 26, "bold"), fg="#f5f9ff", bg="#14253a").pack(anchor="w", pady=(7, 0))
+        tk.Label(self, textvariable=self.value, font=("Segoe UI", 22, "bold"), fg="#f5f9ff", bg="#14253a").pack(anchor="w", pady=(4, 0))
         tk.Label(self, textvariable=self.sub, font=("Segoe UI", 9), fg="#9eb6cd", bg="#14253a").pack(anchor="w")
 
     def set(self, value: int, unit: str) -> None:
@@ -132,7 +132,7 @@ class MetricCard(tk.Frame):
 
 class Sparkline(tk.Canvas):
     def __init__(self, parent: tk.Misc, title: str, unit: str, color: str, min_span: int = 100):
-        super().__init__(parent, height=145, bg="#14253a", highlightthickness=1,
+        super().__init__(parent, height=118, bg="#14253a", highlightthickness=1,
                          highlightbackground="#2b4661")
         self.title, self.unit, self.color, self.min_span, self.values = title, unit, color, min_span, ()
         self.bind("<Configure>", lambda _event: self.draw())
@@ -214,37 +214,35 @@ class Dashboard:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
 
     def _build(self) -> None:
-        header = tk.Frame(self.root, bg="#0f7c86", padx=22, pady=15)
+        header = tk.Frame(self.root, bg="#0f7c86", padx=18, pady=10)
         header.pack(fill="x")
-        tk.Label(header, text="COSMOKE  |  LAN LIVE DASHBOARD", font=("Segoe UI", 18, "bold"),
+        tk.Label(header, text="COSMOKE  |  LAN LIVE DASHBOARD", font=("Segoe UI", 16, "bold"),
                  fg="white", bg="#0f7c86").pack(anchor="w")
-        tk.Label(header, textvariable=self.connection, font=("Segoe UI", 10, "bold"), fg="#d7fbff", bg="#0f7c86").pack(anchor="w", pady=(3, 0))
+        tk.Label(header, textvariable=self.connection, font=("Segoe UI", 9, "bold"), fg="#d7fbff", bg="#0f7c86").pack(anchor="w", pady=(2, 0))
 
-        body = tk.Frame(self.root, bg="#0b1726", padx=18, pady=16)
+        body = tk.Frame(self.root, bg="#0b1726", padx=14, pady=12)
         body.pack(fill="both", expand=True)
         body.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="metric")
-        body.grid_rowconfigure(2, weight=1)
 
         self.cards = [
             MetricCard(body, "CH1 CURRENT", "#49dcb1"), MetricCard(body, "CH1 VOLTAGE", "#78b8ff"),
             MetricCard(body, "CH2 CURRENT", "#f6bd60"), MetricCard(body, "CH2 VOLTAGE", "#ef8cb5"),
         ]
         for index, card in enumerate(self.cards):
-            card.grid(row=0, column=index, sticky="nsew", padx=5, pady=(0, 12))
+            card.grid(row=0, column=index, sticky="nsew", padx=4, pady=(0, 8))
 
-        status = tk.Frame(body, bg="#14253a", padx=16, pady=12, highlightthickness=1, highlightbackground="#2b4661")
-        status.grid(row=1, column=0, columnspan=4, sticky="ew", padx=5, pady=(0, 12))
+        status = tk.Frame(body, bg="#14253a", padx=14, pady=9, highlightthickness=1, highlightbackground="#2b4661")
+        status.grid(row=1, column=0, columnspan=4, sticky="ew", padx=4, pady=(0, 8))
         status.grid_columnconfigure(1, weight=1)
         tk.Label(status, text="STATUS", font=("Segoe UI", 10, "bold"), fg="#8fe6d0", bg="#14253a").grid(row=0, column=0, sticky="w")
         tk.Label(status, textvariable=self.flags, font=("Segoe UI", 11, "bold"), fg="#f5f9ff", bg="#14253a").grid(row=0, column=1, sticky="w", padx=14)
         tk.Label(status, textvariable=self.adc, font=("Consolas", 10), fg="#b8cae0", bg="#14253a").grid(row=0, column=2, sticky="e")
-        tk.Label(status, textvariable=self.connection_detail, font=("Segoe UI", 10), fg="#b8cae0", bg="#14253a").grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
-        tk.Label(status, textvariable=self.counters, font=("Consolas", 10), fg="#b8cae0", bg="#14253a").grid(row=2, column=0, columnspan=3, sticky="w", pady=(5, 0))
+        tk.Label(status, textvariable=self.connection_detail, font=("Segoe UI", 9), fg="#b8cae0", bg="#14253a").grid(row=1, column=0, columnspan=3, sticky="w", pady=(5, 0))
+        tk.Label(status, textvariable=self.counters, font=("Consolas", 9), fg="#b8cae0", bg="#14253a").grid(row=2, column=0, columnspan=3, sticky="w", pady=(3, 0))
 
         charts = tk.Frame(body, bg="#0b1726")
-        charts.grid(row=2, column=0, columnspan=4, sticky="nsew")
+        charts.grid(row=2, column=0, columnspan=4, sticky="ew")
         charts.grid_columnconfigure((0, 1), weight=1, uniform="chart")
-        charts.grid_rowconfigure((0, 1), weight=1)
         self.charts = [
             Sparkline(charts, "CH1 current history", "mA", "#49dcb1", min_span=100),
             Sparkline(charts, "CH1 voltage history", "mV", "#78b8ff", min_span=1000),
@@ -252,28 +250,29 @@ class Dashboard:
             Sparkline(charts, "CH2 voltage history", "mV", "#ef8cb5", min_span=1000),
         ]
         for index, chart in enumerate(self.charts):
-            chart.grid(row=index // 2, column=index % 2, sticky="nsew", padx=5, pady=5)
+            chart.grid(row=index // 2, column=index % 2, sticky="ew", padx=4, pady=4)
 
         footer = tk.Frame(body, bg="#0b1726")
-        footer.grid(row=3, column=0, columnspan=4, sticky="ew", padx=5, pady=(12, 0))
+        footer.grid(row=3, column=0, columnspan=4, sticky="ew", padx=4, pady=(8, 0))
         footer.grid_columnconfigure(0, weight=1)
         tk.Label(footer, textvariable=self.latest, justify="left", anchor="w", wraplength=870,
                  font=("Consolas", 9), fg="#9eb6cd", bg="#0b1726").grid(row=0, column=0, sticky="ew")
-        tk.Button(footer, text="Clear trend", command=self.clear_trend, bg="#254761", fg="white",
-                  activebackground="#326783", activeforeground="white", relief="flat", padx=12, pady=6).grid(row=0, column=1, padx=(12, 0))
         tk.Label(footer, textvariable=self.capture_status, justify="left", anchor="w",
-                 font=("Segoe UI", 9, "bold"), fg="#8fe6d0", bg="#0b1726").grid(row=1, column=0, sticky="ew", pady=(10, 0))
+                 font=("Segoe UI", 9, "bold"), fg="#8fe6d0", bg="#0b1726").grid(row=1, column=0, sticky="ew", pady=(7, 0))
+        tk.Button(footer, text="Clear trend", command=self.clear_trend, bg="#254761", fg="white",
+                  activebackground="#326783", activeforeground="white", relief="flat", padx=11, pady=5).grid(row=1, column=1, padx=(10, 0), pady=(4, 0))
         self.start_capture_button = tk.Button(
             footer, text="새 CSV 저장", command=self.start_capture, bg="#0f7c86", fg="white",
-            activebackground="#1496a1", activeforeground="white", relief="flat", padx=12, pady=6,
+            activebackground="#1496a1", activeforeground="white", disabledforeground="#90A4B8",
+            relief="flat", padx=11, pady=5,
         )
-        self.start_capture_button.grid(row=1, column=1, padx=(12, 0), pady=(8, 0), sticky="e")
+        self.start_capture_button.grid(row=1, column=2, padx=(8, 0), pady=(4, 0), sticky="e")
         self.stop_capture_button = tk.Button(
             footer, text="저장 종료", command=self.stop_capture, bg="#7f1d1d", fg="white",
-            activebackground="#b91c1c", activeforeground="white", relief="flat", padx=12, pady=6,
+            activebackground="#b91c1c", activeforeground="white", relief="flat", padx=11, pady=5,
             state="disabled",
         )
-        self.stop_capture_button.grid(row=1, column=2, padx=(8, 0), pady=(8, 0), sticky="e")
+        self.stop_capture_button.grid(row=1, column=3, padx=(8, 0), pady=(4, 0), sticky="e")
 
     def poll(self) -> None:
         newest = None
