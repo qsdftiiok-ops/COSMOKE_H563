@@ -26,6 +26,11 @@ typedef struct
   uint32_t drdy_count;
   uint32_t completed_frames;
   uint32_t dropped_frames;
+  uint32_t dropped_dma_busy;
+  uint32_t dropped_ring_full;
+  uint32_t dropped_spi_start;
+  uint32_t dropped_spi_error;
+  uint32_t dropped_bus_locked;
   uint32_t spi_errors;
   uint32_t crc_errors;
   uint16_t id_register;

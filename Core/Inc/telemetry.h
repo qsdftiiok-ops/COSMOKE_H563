@@ -32,6 +32,11 @@ typedef struct
   MeasurementResult measurement;
   uint16_t flags;
   uint32_t dropped_frames;
+  uint32_t dropped_dma_busy;
+  uint32_t dropped_ring_full;
+  uint32_t dropped_spi_start;
+  uint32_t dropped_spi_error;
+  uint32_t dropped_bus_locked;
   uint32_t adc_crc_errors;
   uint32_t adc_spi_errors;
   uint32_t dac_errors;

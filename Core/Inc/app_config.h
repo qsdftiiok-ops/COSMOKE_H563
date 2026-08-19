@@ -12,13 +12,20 @@
 #define APP_ADC_REFERENCE_V                 (1.200000f)
 #define APP_ADC_PGA_GAIN                    (1.000000f)
 #define APP_ADC_CLOCK_HZ                    (8192000u)
-#define APP_ADC_SAMPLE_RATE_HZ              (4000u)       /* HR, OSR = 1024 */
+#define APP_ADC_SAMPLE_RATE_HZ              (2000u)       /* HR, OSR = 2048 */
 
 /* MODE: 24-bit words, input/register CRC disabled, SPI timeout enabled. */
 #define APP_ADC_MODE_REGISTER               (0x0110u)
 
-/* CLOCK: CH0..3 enabled, CH4..7 disabled, external CMOS clock, OSR 1024, HR. */
-#define APP_ADC_CLOCK_REGISTER              (0x0F8Eu)
+/*
+ * CLOCK: CH0..3 enabled, CH4..7 disabled, external CMOS clock, OSR 2048, HR.
+ *
+ * 2 kSPS is the reliable measurement profile for the shared ADC/DAC SPI bus.
+ * It doubles the DRDY service budget compared with the previous 4 kSPS profile
+ * and improves input-referred noise.  Restore 0x0F8E (OSR 1024) only after a
+ * hardware timing capture proves that the 4 kSPS profile has zero frame drops.
+ */
+#define APP_ADC_CLOCK_REGISTER              (0x0F92u)
 #define APP_ADC_GAIN1_REGISTER              (0x0000u)     /* PGA gain = 1 */
 
 #define APP_ADC_VERIFY_OUTPUT_CRC            (1u)
@@ -26,7 +33,7 @@
 #define APP_ADC_RESET_LOW_MS                 (2u)
 #define APP_ADC_RESET_RECOVERY_MS            (10u)
 #define APP_ADC_SPI_TIMEOUT_MS               (5u)
-#define APP_ADC_RING_CAPACITY                (128u)       /* Must be power of 2 */
+#define APP_ADC_RING_CAPACITY                (256u)       /* Must be power of 2 */
 #define APP_ADC_STARTUP_DISCARD_FRAMES        (2u)
 
 /* Channel calibration ------------------------------------------------------ */

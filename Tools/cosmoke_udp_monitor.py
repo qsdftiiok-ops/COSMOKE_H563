@@ -37,7 +37,7 @@ FLAG_NAMES = {
     13: "WARMUP",
 }
 
-CSV_FIELDS = (
+CSV_FIELDS_BASE = (
     "sequence", "milliseconds", "flags", "adc_status",
     "i1", "v1", "i2", "v2",
     "raw_i1", "raw_v1", "raw_i2", "raw_v2",
@@ -45,13 +45,24 @@ CSV_FIELDS = (
     "dropped", "crc_errors", "spi_errors", "dac_errors",
 )
 
+# Firmware builds before the drop-diagnostic update have 20 fields.  The
+# extended frame preserves those fields and inserts five cause counters after
+# the total drop count, so existing captures remain readable.
+CSV_DROP_DETAIL_FIELDS = (
+    "dropped_dma_busy", "dropped_ring_full", "dropped_spi_start",
+    "dropped_spi_error", "dropped_bus_locked",
+)
+CSV_FIELDS = CSV_FIELDS_BASE[:17] + CSV_DROP_DETAIL_FIELDS + CSV_FIELDS_BASE[17:]
+
 CAPTURE_COLUMNS = (
     "received_at", "source", "format", "sequence", "device_ms",
     "flags_hex", "flags_text", "adc_status_hex",
     "i1_mA", "v1_mV", "i2_mA", "v2_mV",
     "raw_i1", "raw_v1", "raw_i2", "raw_v2",
     "dac_i1", "dac_v1", "dac_i2", "dac_v2",
-    "dropped", "crc_errors", "spi_errors", "dac_errors",
+    "dropped", "dropped_dma_busy", "dropped_ring_full", "dropped_spi_start",
+    "dropped_spi_error", "dropped_bus_locked",
+    "crc_errors", "spi_errors", "dac_errors",
 )
 
 
@@ -103,9 +114,15 @@ def decode_csv(packet: bytes) -> dict[str, Any]:
     """Decode the firmware's default 20-field CSV telemetry datagram."""
     text = packet.decode("ascii").strip()
     values = text.split(",")
-    if len(values) != len(CSV_FIELDS):
-        raise ValueError(f"CSV field count is {len(values)}, expected {len(CSV_FIELDS)}")
-    return {name: int(value, 0) for name, value in zip(CSV_FIELDS, values)}
+    if len(values) == len(CSV_FIELDS_BASE):
+        result = {name: int(value, 0) for name, value in zip(CSV_FIELDS_BASE, values)}
+        result.update({name: 0 for name in CSV_DROP_DETAIL_FIELDS})
+        return result
+    if len(values) == len(CSV_FIELDS):
+        return {name: int(value, 0) for name, value in zip(CSV_FIELDS, values)}
+    raise ValueError(
+        f"CSV field count is {len(values)}, expected {len(CSV_FIELDS_BASE)} or {len(CSV_FIELDS)}"
+    )
 
 
 def flag_text(flags: int) -> str:
@@ -132,6 +149,7 @@ def capture_row(
         dropped = decoded["dropped"]
         spi_errors = None
         dac_errors = None
+        drop_details = {name: None for name in CSV_DROP_DETAIL_FIELDS}
     else:
         raw = (decoded["raw_i1"], decoded["raw_v1"], decoded["raw_i2"], decoded["raw_v2"])
         scaled = (decoded["i1"], decoded["v1"], decoded["i2"], decoded["v2"])
@@ -144,6 +162,7 @@ def capture_row(
         dropped = decoded["dropped"]
         spi_errors = decoded["spi_errors"]
         dac_errors = decoded["dac_errors"]
+        drop_details = {name: decoded[name] for name in CSV_DROP_DETAIL_FIELDS}
 
     return {
         "received_at": received_at.isoformat(timespec="milliseconds"),
@@ -159,6 +178,7 @@ def capture_row(
         "raw_i1": raw[0], "raw_v1": raw[1], "raw_i2": raw[2], "raw_v2": raw[3],
         "dac_i1": dac[0], "dac_v1": dac[1], "dac_i2": dac[2], "dac_v2": dac[3],
         "dropped": dropped,
+        **drop_details,
         "crc_errors": crc_errors,
         "spi_errors": spi_errors,
         "dac_errors": dac_errors,
@@ -166,20 +186,21 @@ def capture_row(
 
 
 class SequenceStats:
-    """Track UDP sequence gaps without treating a device restart as packet loss."""
+    """Track capture count and device restarts.
+
+    Firmware sequence is an ADC sample number, not a UDP packet sequence, so
+    gaps must never be reported as network loss.
+    """
 
     def __init__(self) -> None:
         self.frames = 0
-        self.lost = 0
         self.resets_or_reorders = 0
         self._last_sequence: int | None = None
         self._last_device_ms: int | None = None
 
     def add(self, sequence: int, device_ms: int) -> None:
         if self._last_sequence is not None:
-            if sequence > self._last_sequence + 1:
-                self.lost += sequence - self._last_sequence - 1
-            elif sequence <= self._last_sequence:
+            if sequence <= self._last_sequence:
                 self.resets_or_reorders += 1
                 if self._last_device_ms is not None and device_ms < self._last_device_ms:
                     print("Device timestamp reset detected.", file=sys.stderr)
@@ -326,7 +347,7 @@ def main() -> int:
         if capture_file is not None:
             capture_file.close()
             print(
-                f"Capture summary: frames={stats.frames}, estimated_udp_loss={stats.lost}, "
+                f"Capture summary: frames={stats.frames}, "
                 f"resets_or_reorders={stats.resets_or_reorders}",
                 file=sys.stderr,
             )
