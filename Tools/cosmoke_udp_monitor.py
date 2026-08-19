@@ -26,6 +26,8 @@ FLAG_NAMES = {
     9: "LAN_NO_ADDRESS",
     10: "LAN_TX_ERROR",
     11: "LAN_FRAME_DROP",
+    12: "MUTED",
+    13: "WARMUP",
 }
 
 

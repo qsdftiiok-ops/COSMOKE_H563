@@ -44,6 +44,9 @@ void ADS131M08_OnDrdyInterrupt(void);
 void ADS131M08_OnSpiCompleteInterrupt(SPI_HandleTypeDef *spi);
 void ADS131M08_OnSpiErrorInterrupt(SPI_HandleTypeDef *spi);
 
+void ADS131M08_EnterRecovery(void);
+void ADS131M08_ExitRecovery(void);
+
 bool ADS131M08_TryLockBus(void);
 void ADS131M08_UnlockBus(void);
 bool ADS131M08_IsOnline(void);

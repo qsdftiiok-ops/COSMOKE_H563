@@ -22,7 +22,9 @@ enum
   TELEMETRY_FLAG_LAN_LINK_DOWN  = (1u << 8),
   TELEMETRY_FLAG_LAN_NO_ADDRESS = (1u << 9),
   TELEMETRY_FLAG_LAN_TX_ERROR   = (1u << 10),
-  TELEMETRY_FLAG_LAN_FRAME_DROP = (1u << 11)
+  TELEMETRY_FLAG_LAN_FRAME_DROP = (1u << 11),
+  TELEMETRY_FLAG_MUTED          = (1u << 12),
+  TELEMETRY_FLAG_WARMUP         = (1u << 13)
 };
 
 typedef struct
@@ -33,6 +35,7 @@ typedef struct
   uint32_t adc_crc_errors;
   uint32_t adc_spi_errors;
   uint32_t dac_errors;
+  uint8_t system_state;
 } TelemetrySnapshot;
 
 void Telemetry_Init(void);

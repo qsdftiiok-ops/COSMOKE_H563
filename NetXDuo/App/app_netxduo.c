@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "app.h"
 #include "app_config.h"
 #include "nxd_dhcp_client.h"
 #include "telemetry.h"
@@ -202,6 +203,8 @@ static VOID NetworkThreadEntry(ULONG argument)
   {
     size_t length = 0u;
     UINT status;
+
+    App_FeedNetworkHeartbeat();
 
     /* nx_udp_socket_bind is thread-only in NetX Duo.  Calling it from
      * tx_application_define returns NX_CALLER_ERROR (0x11) and used to
@@ -442,6 +445,7 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   }
 
   s_status.initialized = true;
+  App_EnableNetworkWatchdog(true);
 #else
   (void)byte_pool;
 #endif

@@ -37,6 +37,7 @@ static volatile bool s_bus_locked;
 static volatile bool s_drdy_pending;
 static volatile bool s_running;
 static volatile bool s_online;
+static volatile bool s_recovering;
 static volatile uint32_t s_sequence;
 static volatile uint32_t s_discard_frames;
 static ADS131M08_Diagnostics s_diagnostics;
@@ -269,9 +270,45 @@ bool ADS131M08_IsOnline(void)
   return s_online;
 }
 
+void ADS131M08_EnterRecovery(void)
+{
+  SPI_HandleTypeDef *spi;
+  bool abort_dma;
+  uint32_t primask = EnterCritical();
+
+  s_recovering = true;
+  s_running = false;
+  spi = s_spi;
+  abort_dma = s_dma_busy;
+  ExitCritical(primask);
+
+  if (abort_dma && spi != NULL)
+  {
+    (void)HAL_SPI_Abort(spi);
+  }
+  HAL_GPIO_WritePin(ADC_CS_N_GPIO_Port, ADC_CS_N_Pin, GPIO_PIN_SET);
+
+  primask = EnterCritical();
+  s_dma_busy = false;
+  s_drdy_pending = false;
+  ExitCritical(primask);
+}
+
+void ADS131M08_ExitRecovery(void)
+{
+  uint32_t primask = EnterCritical();
+  s_recovering = false;
+  ExitCritical(primask);
+}
+
 void ADS131M08_OnDrdyInterrupt(void)
 {
   HAL_StatusTypeDef status;
+
+  if (s_recovering)
+  {
+    return;
+  }
 
   s_diagnostics.drdy_count++;
   if (!s_running || !s_online)
@@ -309,7 +346,7 @@ void ADS131M08_OnSpiCompleteInterrupt(SPI_HandleTypeDef *spi)
   uint32_t next_head;
   RawFrameSlot *slot;
 
-  if (spi != s_spi || !s_dma_busy)
+  if (spi != s_spi || !s_dma_busy || s_recovering)
   {
     return;
   }
@@ -341,7 +378,7 @@ void ADS131M08_OnSpiCompleteInterrupt(SPI_HandleTypeDef *spi)
 
 void ADS131M08_OnSpiErrorInterrupt(SPI_HandleTypeDef *spi)
 {
-  if (spi != s_spi)
+  if (spi != s_spi || s_recovering)
   {
     return;
   }
@@ -357,7 +394,7 @@ bool ADS131M08_ReadFrame(ADS131M08_Frame *frame)
   RawFrameSlot raw;
   uint32_t tail;
 
-  if (frame == NULL)
+  if (frame == NULL || s_recovering)
   {
     return false;
   }

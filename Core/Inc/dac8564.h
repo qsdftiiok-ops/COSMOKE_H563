@@ -18,6 +18,10 @@ bool DAC8564_Init(SPI_HandleTypeDef *spi);
 bool DAC8564_WriteChannel(DAC8564_Channel channel, uint16_t code);
 bool DAC8564_WriteAll(const uint16_t code[DAC8564_CHANNEL_COUNT]);
 bool DAC8564_WriteSafe(void);
+bool DAC8564_IsHealthy(void);
+bool DAC8564_HasFault(void);
+uint32_t DAC8564_GetChannelErrors(void);
+uint32_t DAC8564_GetFailedCycles(void);
 uint32_t DAC8564_GetErrorCount(void);
 
 #endif /* DAC8564_H */
