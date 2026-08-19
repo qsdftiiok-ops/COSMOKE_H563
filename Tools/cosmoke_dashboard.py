@@ -178,8 +178,14 @@ class Dashboard:
     def __init__(self, bind: str, port: int):
         self.root = tk.Tk()
         self.root.title("COSMOKE LAN Dashboard")
-        self.root.geometry("1120x750")
-        self.root.minsize(900, 620)
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        width = min(1280, max(640, screen_width - 80), screen_width)
+        height = min(900, max(560, screen_height - 100), screen_height)
+        left = max(0, (screen_width - width) // 2)
+        top = max(0, (screen_height - height) // 2)
+        self.root.geometry(f"{width}x{height}+{left}+{top}")
+        self.root.minsize(min(900, width), min(680, height))
         self.root.configure(bg="#0b1726")
         self.queue: queue.Queue = queue.Queue()
         self.stop = threading.Event()
@@ -217,6 +223,7 @@ class Dashboard:
         body = tk.Frame(self.root, bg="#0b1726", padx=18, pady=16)
         body.pack(fill="both", expand=True)
         body.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="metric")
+        body.grid_rowconfigure(2, weight=1)
 
         self.cards = [
             MetricCard(body, "CH1 CURRENT", "#49dcb1"), MetricCard(body, "CH1 VOLTAGE", "#78b8ff"),
@@ -237,6 +244,7 @@ class Dashboard:
         charts = tk.Frame(body, bg="#0b1726")
         charts.grid(row=2, column=0, columnspan=4, sticky="nsew")
         charts.grid_columnconfigure((0, 1), weight=1, uniform="chart")
+        charts.grid_rowconfigure((0, 1), weight=1)
         self.charts = [
             Sparkline(charts, "CH1 current history", "mA", "#49dcb1", min_span=100),
             Sparkline(charts, "CH1 voltage history", "mV", "#78b8ff", min_span=1000),
