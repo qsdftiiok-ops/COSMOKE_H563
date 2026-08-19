@@ -19,7 +19,7 @@ from pathlib import Path
 
 try:
     import tkinter as tk
-    from tkinter import filedialog, messagebox
+    from tkinter import messagebox
 except ImportError as error:  # pragma: no cover - depends on the local Python install
     raise SystemExit("tkinter가 포함된 Python이 필요합니다. 일반 Windows Python 설치본을 사용하세요.") from error
 
@@ -201,6 +201,7 @@ class Dashboard:
         self.capture_status = tk.StringVar(value="CSV 저장: 대기")
 
         self._build()
+        self.start_capture()
         self.receiver.start()
         self.root.after(30, self.poll)
         self.root.after(250, self.update_age)
@@ -255,7 +256,7 @@ class Dashboard:
         tk.Label(footer, textvariable=self.capture_status, justify="left", anchor="w",
                  font=("Segoe UI", 9, "bold"), fg="#8fe6d0", bg="#0b1726").grid(row=1, column=0, sticky="ew", pady=(10, 0))
         self.start_capture_button = tk.Button(
-            footer, text="CSV 저장 시작", command=self.start_capture, bg="#0f7c86", fg="white",
+            footer, text="새 CSV 저장", command=self.start_capture, bg="#0f7c86", fg="white",
             activebackground="#1496a1", activeforeground="white", relief="flat", padx=12, pady=6,
         )
         self.start_capture_button.grid(row=1, column=1, padx=(12, 0), pady=(8, 0), sticky="e")
@@ -290,17 +291,8 @@ class Dashboard:
             return
         logs_dir = Path.cwd() / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
-        default_name = datetime.now().strftime("cosmoke_capture_%Y%m%d_%H%M%S.csv")
-        selected = filedialog.asksaveasfilename(
-            title="COSMOKE 텔레메트리 CSV 저장",
-            initialdir=logs_dir,
-            initialfile=default_name,
-            defaultextension=".csv",
-            filetypes=(("CSV files", "*.csv"), ("All files", "*.*")),
-        )
-        if not selected:
-            return
-        self.capture_path = Path(selected)
+        file_name = datetime.now().strftime("cosmoke_capture_%Y%m%d_%H%M%S_%f.csv")
+        self.capture_path = logs_dir / file_name
         self.capture_file = self.capture_path.open("w", newline="", encoding="utf-8")
         self.capture_writer = csv.DictWriter(self.capture_file, fieldnames=CAPTURE_COLUMNS)
         self.capture_writer.writeheader()
