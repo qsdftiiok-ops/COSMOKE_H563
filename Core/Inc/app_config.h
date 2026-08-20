@@ -58,7 +58,7 @@
 #define APP_CH0_ZERO_COUNTS                  (0)
 #define APP_CH0_VOLTS_PER_UNIT               (0.030530f)  /* CH1 current, V/A */
 #define APP_CH0_SCALE_TRIM                   (1.000000f)
-#define APP_CH0_OFFSET_UNITS                 (0.000000f)
+#define APP_CH0_OFFSET_UNITS                 (-0.012466f) /* 2026-08-20 zero CSV, -12.466 mA */
 #define APP_CH0_POLARITY                     (1.000000f)
 #define APP_CH0_FILTER_ALPHA                 (0.050000f)
 #define APP_CH0_FULL_SCALE_UNITS             (30.000000f)
@@ -66,7 +66,7 @@
 #define APP_CH1_ZERO_COUNTS                  (0)
 #define APP_CH1_VOLTS_PER_UNIT               (0.004009f)  /* CH1 voltage, V/V */
 #define APP_CH1_SCALE_TRIM                   (1.000000f)
-#define APP_CH1_OFFSET_UNITS                 (0.000000f)
+#define APP_CH1_OFFSET_UNITS                 (0.011734f)  /* 2026-08-20 zero CSV, +11.734 mV */
 #define APP_CH1_POLARITY                     (1.000000f)
 #define APP_CH1_FILTER_ALPHA                 (0.050000f)
 #define APP_CH1_FULL_SCALE_UNITS             (250.000000f)
@@ -74,7 +74,7 @@
 #define APP_CH2_ZERO_COUNTS                  (0)
 #define APP_CH2_VOLTS_PER_UNIT               (0.030530f)  /* CH2 current, V/A */
 #define APP_CH2_SCALE_TRIM                   (1.000000f)
-#define APP_CH2_OFFSET_UNITS                 (0.000000f)
+#define APP_CH2_OFFSET_UNITS                 (-0.011331f) /* 2026-08-20 zero CSV, -11.331 mA */
 #define APP_CH2_POLARITY                     (1.000000f)
 #define APP_CH2_FILTER_ALPHA                 (0.050000f)
 #define APP_CH2_FULL_SCALE_UNITS             (30.000000f)
@@ -82,7 +82,7 @@
 #define APP_CH3_ZERO_COUNTS                  (0)
 #define APP_CH3_VOLTS_PER_UNIT               (0.004009f)  /* CH2 voltage, V/V */
 #define APP_CH3_SCALE_TRIM                   (1.000000f)
-#define APP_CH3_OFFSET_UNITS                 (0.000000f)
+#define APP_CH3_OFFSET_UNITS                 (-0.029593f) /* 2026-08-20 zero CSV, -29.593 mV */
 #define APP_CH3_POLARITY                     (1.000000f)
 #define APP_CH3_FILTER_ALPHA                 (0.050000f)
 #define APP_CH3_FULL_SCALE_UNITS             (250.000000f)
