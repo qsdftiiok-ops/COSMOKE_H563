@@ -43,6 +43,17 @@
  *
  * VOLTS_PER_UNIT values come from the board schematic.  Replace the trims
  * after calibration with a traceable current/voltage source.
+ *
+ * Zero-input calibration workflow:
+ *   1. Record a stable zero-input CSV for each connected channel.
+ *   2. Use the mean displayed engineering value after warm-up.
+ *   3. Set OFFSET_UNITS to the negative of that mean, then rebuild/flash.
+ *
+ * Example: a CH1-current zero mean of +0.0126 A becomes
+ * APP_CH0_OFFSET_UNITS (-0.012600f).  This is intentionally applied after
+ * SCALE_TRIM so a later gain calibration does not invalidate the raw offset.
+ * ZERO_COUNTS remains available when a traceable raw ADC zero-count value is
+ * preferred instead.
  */
 #define APP_CH0_ZERO_COUNTS                  (0)
 #define APP_CH0_VOLTS_PER_UNIT               (0.030530f)  /* CH1 current, V/A */
