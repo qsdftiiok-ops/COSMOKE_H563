@@ -41,7 +41,8 @@ void Telemetry_Init(void)
 #if (APP_TELEMETRY_FORMAT == APP_TELEMETRY_FORMAT_CSV)
   printf("seq,ms,flags,adc_status,i1_mA,v1_mV,i2_mA,v2_mV,"
          "raw_i1,raw_v1,raw_i2,raw_v2,dac_i1,dac_v1,dac_i2,dac_v2,"
-         "dropped,crc_error,spi_error,dac_error\r\n");
+         "dropped,dropped_dma_busy,dropped_ring_full,dropped_spi_start,"
+         "dropped_spi_error,dropped_bus_locked,crc_error,spi_error,dac_error\r\n");
 #endif
 #endif
 }
