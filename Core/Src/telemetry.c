@@ -41,7 +41,8 @@ void Telemetry_Init(void)
 #if (APP_TELEMETRY_FORMAT == APP_TELEMETRY_FORMAT_CSV)
   printf("seq,ms,flags,adc_status,i1_mA,v1_mV,i2_mA,v2_mV,"
          "raw_i1,raw_v1,raw_i2,raw_v2,dac_i1,dac_v1,dac_i2,dac_v2,"
-         "dropped,crc_error,spi_error,dac_error\r\n");
+         "dropped,dropped_dma_busy,dropped_ring_full,dropped_spi_start,"
+         "dropped_spi_error,dropped_bus_locked,crc_error,spi_error,dac_error\r\n");
 #endif
 #endif
 }
@@ -96,7 +97,7 @@ static size_t BuildCsv(const TelemetrySnapshot *snapshot,
   int length = snprintf(
     (char *)frame, TELEMETRY_MAX_FRAME_SIZE,
     "%lu,%lu,0x%04X,0x%04X,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,"
-    "%u,%u,%u,%u,%lu,%lu,%lu,%lu\r\n",
+    "%u,%u,%u,%u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\r\n",
     (unsigned long)snapshot->measurement.sequence,
     (unsigned long)snapshot->measurement.timestamp_ms,
     snapshot->flags,
@@ -114,6 +115,11 @@ static size_t BuildCsv(const TelemetrySnapshot *snapshot,
     snapshot->measurement.dac_code[2],
     snapshot->measurement.dac_code[3],
     (unsigned long)snapshot->dropped_frames,
+    (unsigned long)snapshot->dropped_dma_busy,
+    (unsigned long)snapshot->dropped_ring_full,
+    (unsigned long)snapshot->dropped_spi_start,
+    (unsigned long)snapshot->dropped_spi_error,
+    (unsigned long)snapshot->dropped_bus_locked,
     (unsigned long)snapshot->adc_crc_errors,
     (unsigned long)snapshot->adc_spi_errors,
     (unsigned long)snapshot->dac_errors);

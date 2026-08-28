@@ -125,6 +125,11 @@ static void RefreshFlags(void)
 
   ADS131M08_GetDiagnostics(&diagnostics);
   s_snapshot.dropped_frames = diagnostics.dropped_frames;
+  s_snapshot.dropped_dma_busy = diagnostics.dropped_dma_busy;
+  s_snapshot.dropped_ring_full = diagnostics.dropped_ring_full;
+  s_snapshot.dropped_spi_start = diagnostics.dropped_spi_start;
+  s_snapshot.dropped_spi_error = diagnostics.dropped_spi_error;
+  s_snapshot.dropped_bus_locked = diagnostics.dropped_bus_locked;
   s_snapshot.adc_crc_errors = diagnostics.crc_errors;
   s_snapshot.adc_spi_errors = diagnostics.spi_errors;
   s_snapshot.dac_errors = DAC8564_GetFailedCycles();

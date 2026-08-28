@@ -12,13 +12,20 @@
 #define APP_ADC_REFERENCE_V                 (1.200000f)
 #define APP_ADC_PGA_GAIN                    (1.000000f)
 #define APP_ADC_CLOCK_HZ                    (8192000u)
-#define APP_ADC_SAMPLE_RATE_HZ              (4000u)       /* HR, OSR = 1024 */
+#define APP_ADC_SAMPLE_RATE_HZ              (2000u)       /* HR, OSR = 2048 */
 
 /* MODE: 24-bit words, input/register CRC disabled, SPI timeout enabled. */
 #define APP_ADC_MODE_REGISTER               (0x0110u)
 
-/* CLOCK: CH0..3 enabled, CH4..7 disabled, external CMOS clock, OSR 1024, HR. */
-#define APP_ADC_CLOCK_REGISTER              (0x0F8Eu)
+/*
+ * CLOCK: CH0..3 enabled, CH4..7 disabled, external CMOS clock, OSR 2048, HR.
+ *
+ * 2 kSPS is the reliable measurement profile for the shared ADC/DAC SPI bus.
+ * It doubles the DRDY service budget compared with the previous 4 kSPS profile
+ * and improves input-referred noise.  Restore 0x0F8E (OSR 1024) only after a
+ * hardware timing capture proves that the 4 kSPS profile has zero frame drops.
+ */
+#define APP_ADC_CLOCK_REGISTER              (0x0F92u)
 #define APP_ADC_GAIN1_REGISTER              (0x0000u)     /* PGA gain = 1 */
 
 #define APP_ADC_VERIFY_OUTPUT_CRC            (1u)
@@ -26,7 +33,7 @@
 #define APP_ADC_RESET_LOW_MS                 (2u)
 #define APP_ADC_RESET_RECOVERY_MS            (10u)
 #define APP_ADC_SPI_TIMEOUT_MS               (5u)
-#define APP_ADC_RING_CAPACITY                (128u)       /* Must be power of 2 */
+#define APP_ADC_RING_CAPACITY                (256u)       /* Must be power of 2 */
 #define APP_ADC_STARTUP_DISCARD_FRAMES        (2u)
 
 /* Channel calibration ------------------------------------------------------ */
@@ -36,35 +43,46 @@
  *
  * VOLTS_PER_UNIT values come from the board schematic.  Replace the trims
  * after calibration with a traceable current/voltage source.
+ *
+ * Zero-input calibration workflow:
+ *   1. Record a stable zero-input CSV for each connected channel.
+ *   2. Use the mean displayed engineering value after warm-up.
+ *   3. Set OFFSET_UNITS to the negative of that mean, then rebuild/flash.
+ *
+ * Example: a CH1-current zero mean of +0.0126 A becomes
+ * APP_CH0_OFFSET_UNITS (-0.012600f).  This is intentionally applied after
+ * SCALE_TRIM so a later gain calibration does not invalidate the raw offset.
+ * ZERO_COUNTS remains available when a traceable raw ADC zero-count value is
+ * preferred instead.
  */
 #define APP_CH0_ZERO_COUNTS                  (0)
 #define APP_CH0_VOLTS_PER_UNIT               (0.030530f)  /* CH1 current, V/A */
-#define APP_CH0_SCALE_TRIM                   (1.000000f)
-#define APP_CH0_OFFSET_UNITS                 (0.000000f)
+#define APP_CH0_SCALE_TRIM                   (0.943822f)  /* 11 V / 5 A one-point trim, 2026-08-20 */
+#define APP_CH0_OFFSET_UNITS                 (-0.011556f) /* 2026-08-27 zero check residual, -0.910 mA */
 #define APP_CH0_POLARITY                     (1.000000f)
 #define APP_CH0_FILTER_ALPHA                 (0.050000f)
 #define APP_CH0_FULL_SCALE_UNITS             (30.000000f)
 
 #define APP_CH1_ZERO_COUNTS                  (0)
 #define APP_CH1_VOLTS_PER_UNIT               (0.004009f)  /* CH1 voltage, V/V */
-#define APP_CH1_SCALE_TRIM                   (1.000000f)
-#define APP_CH1_OFFSET_UNITS                 (0.000000f)
+#define APP_CH1_SCALE_TRIM                   (1.000000f)  /* Voltage trim disabled: capture raw circuit response. */
+#define APP_CH1_OFFSET_UNITS                 (0.000000f)  /* Voltage offset disabled: capture raw circuit response. */
 #define APP_CH1_POLARITY                     (1.000000f)
 #define APP_CH1_FILTER_ALPHA                 (0.050000f)
 #define APP_CH1_FULL_SCALE_UNITS             (250.000000f)
 
 #define APP_CH2_ZERO_COUNTS                  (0)
 #define APP_CH2_VOLTS_PER_UNIT               (0.030530f)  /* CH2 current, V/A */
-#define APP_CH2_SCALE_TRIM                   (1.000000f)
-#define APP_CH2_OFFSET_UNITS                 (0.000000f)
-#define APP_CH2_POLARITY                     (1.000000f)
+#define APP_CH2_SCALE_TRIM                   (0.967936f)  /* 11 V / 5 A one-point trim, 2026-08-20 */
+#define APP_CH2_OFFSET_UNITS                 (0.010111f)  /* Polarity-inverted CH2: preserves 0 A using 2026-08-27 zero check. */
+#define APP_CH2_POLARITY                     (-1.000000f) /* CH2 shunt polarity is inverted for positive load current. */
 #define APP_CH2_FILTER_ALPHA                 (0.050000f)
 #define APP_CH2_FULL_SCALE_UNITS             (30.000000f)
 
 #define APP_CH3_ZERO_COUNTS                  (0)
 #define APP_CH3_VOLTS_PER_UNIT               (0.004009f)  /* CH2 voltage, V/V */
-#define APP_CH3_SCALE_TRIM                   (1.000000f)
-#define APP_CH3_OFFSET_UNITS                 (0.000000f)
+#define APP_CH3_SCALE_TRIM                   (1.000000f)  /* Voltage trim disabled: capture raw circuit response. */
+#define APP_CH3_OFFSET_UNITS                 (0.000000f)  /* Voltage offset disabled: capture raw circuit response. */
 #define APP_CH3_POLARITY                     (1.000000f)
 #define APP_CH3_FILTER_ALPHA                 (0.050000f)
 #define APP_CH3_FULL_SCALE_UNITS             (250.000000f)

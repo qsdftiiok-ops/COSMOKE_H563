@@ -319,11 +319,19 @@ void ADS131M08_OnDrdyInterrupt(void)
   if (s_dma_busy)
   {
     s_diagnostics.dropped_frames++;
+    s_diagnostics.dropped_dma_busy++;
     return;
   }
 
   if (s_bus_locked)
   {
+    /* One deferred DRDY can be serviced after the DAC transaction.  Further
+     * DRDY edges overwrite that pending conversion and are actual losses. */
+    if (s_drdy_pending)
+    {
+      s_diagnostics.dropped_frames++;
+      s_diagnostics.dropped_bus_locked++;
+    }
     s_drdy_pending = true;
     return;
   }
@@ -338,6 +346,7 @@ void ADS131M08_OnDrdyInterrupt(void)
     s_dma_busy = false;
     s_diagnostics.spi_errors++;
     s_diagnostics.dropped_frames++;
+    s_diagnostics.dropped_spi_start++;
   }
 }
 
@@ -365,6 +374,7 @@ void ADS131M08_OnSpiCompleteInterrupt(SPI_HandleTypeDef *spi)
   if (next_head == s_ring_tail)
   {
     s_diagnostics.dropped_frames++;
+    s_diagnostics.dropped_ring_full++;
     return;
   }
 
@@ -387,6 +397,7 @@ void ADS131M08_OnSpiErrorInterrupt(SPI_HandleTypeDef *spi)
   s_dma_busy = false;
   s_diagnostics.spi_errors++;
   s_diagnostics.dropped_frames++;
+  s_diagnostics.dropped_spi_error++;
 }
 
 bool ADS131M08_ReadFrame(ADS131M08_Frame *frame)
@@ -480,6 +491,7 @@ void ADS131M08_UnlockBus(void)
       ExitCritical(p);
       s_diagnostics.spi_errors++;
       s_diagnostics.dropped_frames++;
+      s_diagnostics.dropped_spi_start++;
     }
   }
 }
